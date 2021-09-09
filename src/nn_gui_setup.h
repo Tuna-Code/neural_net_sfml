@@ -15,7 +15,8 @@ class NN_gui_setup{
 		Net_Helper* net;
 		double win_x;
 		double win_y;
-		bool net_loaded;
+		bool manual_net_loaded;
+		bool file_net_loaded;
 		string extra_text;
 		util::Platform platform;
 		sf::RenderWindow window;

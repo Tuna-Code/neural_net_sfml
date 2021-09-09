@@ -19,7 +19,8 @@ NN_gui_setup::NN_gui_setup(Net_Helper* net)
 	// in Windows at least, this must be called before creating the window
 	screenScalingFactor = platform.getScreenScalingFactor(window.getSystemHandle());
 	extra_text = "";
-	net_loaded = false;
+	manual_net_loaded = false;
+	file_net_loaded = false;
 }
 
 // Open window and display interactive setup for node
@@ -77,24 +78,24 @@ void NN_gui_setup::display_int_setup()
 	//playerText.setPosition(rectangle.getPosition().x + (rectangle.getSize().x/2) - playerText.getGlobalBounds().width/2, rectangle.getPosition().y + rectangle.getSize().y - 100);
 	playerText.setPosition(rectangle.getPosition().x + (rectangle.getSize().x / 2) - playerText.getGlobalBounds().width / 2, rectangle.getPosition().y + rectangle.getSize().y - 50);
 	playerText.setFont(title_font);
-	playerText.setCharacterSize(40);
+	playerText.setCharacterSize(50);
 	playerText.setFillColor(sf::Color::White);
 	bool display_player_text = true;
 
 	// Set text attributes displaying input data
 	layer_num_text.setFont(title_font);
 	layer_num_text.setCharacterSize(25);
-	layer_num_text.setString("- Layers in Network: ");
+	layer_num_text.setString("Layer Count: ");
 	layer_num_text.setStyle(sf::Text::Bold);
 	layer_num_text.setFillColor(sf::Color::White);
 	layer_num_text.setPosition(rectangle.getPosition().x + (rectangle.getSize().x / 2) - layer_num_text.getGlobalBounds().width / 2, rectangle.getPosition().y + 20);
-	bool display_num_layers = true;
+	bool display_num_layers = false;
 
 	// Set text attributes displaying layer data
 	layer_data.setPosition((rectangle.getPosition().x + 20), layer_num_text.getPosition().y + layer_num_text.getGlobalBounds().height -20);
 	layer_data.setFont(title_font);
 	layer_data.setCharacterSize(25);
-	layer_data.setString("- Layer 0: ");
+	layer_data.setString("Layer Node Count:\n[");
 	layer_data.setStyle(sf::Text::Bold);
 	layer_data.setFillColor(sf::Color::White);
 	bool display_layer_data = false;
@@ -103,7 +104,7 @@ void NN_gui_setup::display_int_setup()
 	input_data.setPosition((rectangle.getPosition().x + 20), layer_data.getPosition().y + layer_data.getGlobalBounds().height + 40);
 	input_data.setFont(title_font);
 	input_data.setCharacterSize(25);
-	input_data.setString("- Initial Values:\n");
+	input_data.setString("Initial Values:\n");
 	input_data.setStyle(sf::Text::Bold);
 	input_data.setFillColor(sf::Color::White);
 	bool display_input_data = false;
@@ -113,11 +114,12 @@ void NN_gui_setup::display_int_setup()
 	//weight_data.setPosition((rectangle.getPosition().x + rectangle.getGlobalBounds().width/2 - weight_data.getGlobalBounds().width/2), layer_.getPosition().y+layer_data.getGlobalBounds().height + 40);
 
 	weight_data.setFont(title_font);
-	weight_data.setCharacterSize(25);
-	weight_data.setString("- Weight Matrix for Layer 0:\n\n------------------------------\n");
+	weight_data.setCharacterSize(20);
+	weight_data.setString(" Weight Matrix (Layer 0):\n-------------------------\n");
 	weight_data.setStyle(sf::Text::Bold);
 	weight_data.setFillColor(sf::Color::White);
-	weight_data.setPosition((rectangle.getPosition().x + rectangle.getGlobalBounds().width / 2 - weight_data.getGlobalBounds().width / 2), layer_num_text.getPosition().y);
+	//weight_data.setPosition((rectangle.getPosition().x + rectangle.getGlobalBounds().width / 2 - weight_data.getGlobalBounds().width / 2), layer_num_text.getPosition().y);
+	weight_data.setPosition(layer_data.getPosition().x, layer_data.getPosition().y);
 
 	bool display_weight_data = false;
 
@@ -159,7 +161,7 @@ void NN_gui_setup::display_int_setup()
 	//window.setView(view);
 	platform.setIcon(window.getSystemHandle());
 	//window.setView(view);
-		window.create(sf::VideoMode(win_x * screenScalingFactor, (win_y + 75) * screenScalingFactor), "Neural Netowrk Interactive Setup");
+	window.create(sf::VideoMode(win_x * screenScalingFactor, (win_y + 75) * screenScalingFactor), "Neural Netowrk Interactive Setup");
 
 
 
@@ -186,14 +188,14 @@ void NN_gui_setup::display_int_setup()
 				if(isprint(event.text.unicode)){
 					playerInput += event.text.unicode;
 					playerText.setString(playerInput);
-					playerText.setPosition(rectangle.getPosition().x + (rectangle.getSize().x / 2) - playerText.getGlobalBounds().width / 2, rectangle.getPosition().y + rectangle.getSize().y - 50);
+					playerText.setPosition(rectangle.getPosition().x + (rectangle.getSize().x / 2) - playerText.getGlobalBounds().width / 2, rectangle.getPosition().y + rectangle.getSize().y - 75);
 
 				}
 				// If backspace is detected and string has input
 				if(event.text.unicode == '\b' && (playerInput.getSize() > 0)){
 					playerInput.erase(playerInput.getSize() - 1, 1);
 					playerText.setString(playerInput);
-					playerText.setPosition(rectangle.getPosition().x + (rectangle.getSize().x / 2) - playerText.getGlobalBounds().width / 2, rectangle.getPosition().y + rectangle.getSize().y - 50);
+					playerText.setPosition(rectangle.getPosition().x + (rectangle.getSize().x / 2) - playerText.getGlobalBounds().width / 2, rectangle.getPosition().y + rectangle.getSize().y - 75);
 
 				}
 				//playerText.setPosition(rectangle.getPosition().x + (rectangle.getSize().x/2) - playerText.getGlobalBounds().width/2, rectangle.getPosition().y + 50);
@@ -392,13 +394,13 @@ void NN_gui_setup::display_int_setup()
 							// Update string for displaying layer stats
 							if (layer_node_counter == 0)
 							{
-								layer_data.setString(layer_data.getString() + to_string(node_count[layer_node_counter]) + " Nodes\n");
+								layer_data.setString(layer_data.getString()  + to_string(node_count[layer_node_counter]) );
 								display_layer_data = true;
 							}
 
 							if (layer_node_counter != layer_count && layer_node_counter != 0)
 							{
-								layer_data.setString(layer_data.getString() + "- Layer " + to_string(layer_node_counter) + ": " +  to_string(node_count[layer_node_counter]) + " Nodes\n");
+								layer_data.setString(layer_data.getString() + ", " + to_string(node_count[layer_node_counter]));
 							}
 
 							layer_node_counter++;
@@ -406,10 +408,10 @@ void NN_gui_setup::display_int_setup()
 							if (layer_node_counter == layer_count)
 							{
 								phase = 2;
-								layer_data.setString(layer_data.getString() + "---------------------");
+								layer_data.setString(layer_data.getString() + "]\n---------------------");
 								input_data.setPosition((rectangle.getPosition().x + 20), layer_data.getPosition().y + layer_data.getGlobalBounds().height + 20);
-								display_input_data = true;
-								cur_text.setString("Please enter the initial input vector for L_0 (" + to_string(node_count[0]) + " nodes):");
+
+								cur_text.setString("Please enter the initial input vector for L0 (" + to_string(node_count[0]) + " nodes):");
 								cur_text.setPosition(win_x / 2 - (cur_text.getGlobalBounds().width / 2), cur_text.getPosition().y);
 								input = new double[node_count[0]];
 								playerInput = "";
@@ -429,7 +431,7 @@ void NN_gui_setup::display_int_setup()
 						{
 							input[init_val_counter] = stod(playerInput.toWideString());
 							//cout << input[init_val_counter]  << endl;
-							input_data.setString(input_data.getString() + "Input " + to_string(init_val_counter) + ": " + to_string(input[init_val_counter]) + "\n");
+							input_data.setString(input_data.getString()  + "N"+ to_string(init_val_counter) + ": " + to_string(input[init_val_counter]) + "\n");
 							display_input_data = true;
 							playerInput = "";
 							playerText.setString("");
@@ -438,14 +440,17 @@ void NN_gui_setup::display_int_setup()
 						if (init_val_counter == node_count[0])
 						{
 							phase = 3;
-							input_data.setString(input_data.getString() + "\n---------------------");
+							input_data.setString(input_data.getString() + "---------------------");
 							//cout << "Finished init vals!\n";
 							playerInput = "";
 							playerText.setString("");
-							cur_text.setString("Please enter weights for Layer 0 (Connecting N_0 to N_0):");
+							cur_text.setString("Please enter weights for Layer 0 (Connecting N0 to N0):");
 							cur_text.setPosition(win_x / 2 - (cur_text.getGlobalBounds().width / 2), cur_text.getPosition().y);
 
 							display_weight_data = true;
+							display_layer_data = false;
+							display_num_layers = false;
+							display_input_data = false;
 						}
 						goto render_setup_screen;
 					}
@@ -480,14 +485,18 @@ void NN_gui_setup::display_int_setup()
 
 							// If we aren't finished adding colums to row, increment column count
 							if (conn_weight_col != node_count[init_weight_counter + 1] - 1)
-							{
-								weight_data.setString(weight_data.getString() + "    " + to_string(weights[conn_weight_row][conn_weight_col]));
+							{	if(conn_weight_col != 0){
+									weight_data.setString(weight_data.getString() + " " + to_string(weights[conn_weight_row][conn_weight_col]));
+								}
+								else{
+									weight_data.setString(weight_data.getString() + to_string(weights[conn_weight_row][conn_weight_col]));
+								}
 								conn_weight_col++;
 							}
 							// If we are finished grabbing colums for row, increment row and reset column
 							else
 							{
-								weight_data.setString(weight_data.getString() + "    " + to_string(weights[conn_weight_row][conn_weight_col]) + "\n");
+								weight_data.setString(weight_data.getString() + " " + to_string(weights[conn_weight_row][conn_weight_col]) + "\n");
 								conn_weight_col = 0;
 
 								conn_weight_row++;
@@ -506,7 +515,7 @@ void NN_gui_setup::display_int_setup()
 								init_weight_counter++;
 								if (init_weight_counter != layer_count - 1)
 								{
-									weight_data.setString(weight_data.getString() + "Weight Matrix for Layer " + to_string(init_weight_counter) + ":\n\n------------------------------\n");
+									weight_data.setString("Weight Matrix (Layer " + to_string(init_weight_counter) + "):\n------------------------------\n");
 								}
 							}
 							if (init_weight_counter == layer_count - 1)
@@ -530,7 +539,7 @@ void NN_gui_setup::display_int_setup()
 								goto render_setup_screen;
 							}
 							//cur_text.setString("Please enter weights for Layer 0 (Connecting N0 to N0):");
-							cur_text.setString("Please enter weights for Layer " + to_string(init_weight_counter) + " (Connecting N_" + to_string(conn_weight_row) + " to N_" + to_string(conn_weight_col) + "):");
+							cur_text.setString("Please enter weights for Layer " + to_string(init_weight_counter) + " (Connecting N" + to_string(conn_weight_row) + " to N" + to_string(conn_weight_col) + "):");
 							//weight_data.setString(weight_data.getString() + "     " + playerInput.toWideString() + ": \n");
 
 							playerInput = "";
@@ -549,7 +558,7 @@ void NN_gui_setup::display_int_setup()
 
 						// If y is entered, accept network and move to next menu
 						if(playerText.getString().toAnsiString() == "y"){
-							net_loaded = true;
+							manual_net_loaded = true;
 							playerInput = "";
 							playerText.setString("");
 							cur_text.setString("Network Acepted! Loading network...");
@@ -587,7 +596,7 @@ void NN_gui_setup::display_int_setup()
 							display_title();
 						}
 						if(playerText.getString().toAnsiString() == "n"){
-							net_loaded = false;
+							manual_net_loaded = false;
 							playerInput = "";
 							playerText.setString("");
 							cur_text.setString("Network Declined! Clearing memory and building new network...");
@@ -723,7 +732,7 @@ void NN_gui_setup::display_title()
 
 	// Set font attributes for option text
 	opt_text.setFont(title_font);
-	opt_text.setString("1: Load network info manually\n\n2: Load pre-made networks (for testing)");
+	opt_text.setString("1: Load network & inputs from file\n\n2: Load simple network info (manual)");
 	opt_text.setCharacterSize(19);
 	opt_text.setFillColor(sf::Color::White);
 	//opt_text.setPosition(text.getPosition().x + opt_text.getGlobalBounds().width/10 , text.getPosition().y + opt_text.getGlobalBounds().height);
@@ -735,9 +744,18 @@ void NN_gui_setup::display_title()
 	load_network.setFont(title_font);
 	load_network.setString("\n3: Process loaded network");
 	load_network.setCharacterSize(19);
-	if(net_loaded){
+	if(manual_net_loaded){
 		//win_x += 70;
-		extra_text = " (from input network)";
+		extra_text = " (from manual input)";
+		c = sf::Color::White;
+		load_network.setFillColor(c);
+		load_network.setStyle(sf::Text::Bold);
+		load_network.setString(load_network.getString() + extra_text);
+		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
+
+	}
+	else if(file_net_loaded){
+		extra_text = " (from file input)";
 		c = sf::Color::White;
 		load_network.setFillColor(c);
 		load_network.setStyle(sf::Text::Bold);
@@ -752,7 +770,6 @@ void NN_gui_setup::display_title()
 		load_network.setStyle(sf::Text::Bold | sf::Text::StrikeThrough);
 		load_network.setString(load_network.getString() + extra_text);
 		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
-
 	}
 
 	// Set font attributes for heading
@@ -778,7 +795,7 @@ void NN_gui_setup::display_title()
 	//bg.setOutlineThickness(5);
 	bg.setTexture(&bg_texture);
 	bg.setPosition(10, text.getPosition().y + text.getGlobalBounds().height - 35);
-	bg.setSize(sf::Vector2f(win_x - bg.getPosition().x*2 , load_network.getPosition().y - load_network.getGlobalBounds().height - opt_text.getGlobalBounds().height +35));
+	bg.setSize(sf::Vector2f(win_x - bg.getPosition().x*2 + 50 , load_network.getPosition().y - load_network.getGlobalBounds().height - opt_text.getGlobalBounds().height +35));
 
 	settings.setTexture(&settings_texture);
 	settings.setSize(sf::Vector2f(75,75));
@@ -806,6 +823,15 @@ void NN_gui_setup::display_title()
 			}
 			// If option 1 is detected
 			if (event.key.code == sf::Keyboard::Num1)
+			{
+				//window.close();
+				file_net_loaded = true;
+				manual_net_loaded = false;
+				window.close();
+				display_title();
+			}
+			// If option 2 is detected
+			if (event.key.code == sf::Keyboard::Num2)
 			{
 				window.close();
 				display_int_setup();

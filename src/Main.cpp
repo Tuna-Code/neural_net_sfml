@@ -1,7 +1,8 @@
 #include "Platform/Platform.hpp"
+#include "nn_gui_setup.h"
+
 #include "layer.h"
 #include "net_helper.h"
-#include "nn_gui_setup.h"
 #include "nnet.h"
 #include <iostream>
 #include <string>
@@ -19,11 +20,18 @@ int main()
 	NNet* net = new NNet();
 	Net_Helper* net_helper = new Net_Helper(net);
 
+
 	// Object for handling initial menu and network setup loops
 	NN_gui_setup* setup = new NN_gui_setup(net_helper);
-	//helper->display_title();
-	setup->display_title();
 
+	// Object for displaying loaded network
+
+	//net_display->net->print_network();
+
+
+	//helper->display_title();
+	//setup->display_int_setup();
+	setup->display_title();
 	cout << "DONE!";
 
 	return 0;
