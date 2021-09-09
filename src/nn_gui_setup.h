@@ -16,6 +16,7 @@ class NN_gui_setup{
 		double win_x;
 		double win_y;
 		bool net_loaded;
+		string extra_text;
 		util::Platform platform;
 		sf::RenderWindow window;
 		sf::Event event;
@@ -26,6 +27,7 @@ class NN_gui_setup{
 		NN_gui_setup(Net_Helper* net);
 		void display_title();
 		void display_int_setup();
+		void resize_window(sf::Window* window, sf::Vector2u res);
 
 
 };
