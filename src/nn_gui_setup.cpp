@@ -23,10 +23,177 @@ NN_gui_setup::NN_gui_setup(Net_Helper* net)
 	file_net_loaded = false;
 }
 
+
+// Display our title with interactive options
+void NN_gui_setup::display_title()
+{
+	win_x = 900;
+	win_y = 600;
+	// Create font and text objects
+	sf::Text title;
+	sf::Text text;
+	sf::Font title_font;
+	sf::Text opt_text;
+	sf::Text load_network;
+
+	sf::Color c;
+
+	sf::RectangleShape bg;
+	sf::RectangleShape settings;
+
+
+
+
+
+
+	sf::Texture bg_texture;
+	sf::Texture settings_texture;
+
+	bg_texture.loadFromFile("content/menu_bg.jpg");
+	settings_texture.loadFromFile("content/settings.jpg");
+
+	// Load font from file
+	if (!title_font.loadFromFile("fonts/akira.otf"))
+	{
+		cout << "FONT NOT FOUND!!\n";
+		exit(EXIT_FAILURE);
+	}
+
+	// Set font attributes for option text
+	opt_text.setFont(title_font);
+	opt_text.setString("1: Load network & inputs from file\n\n2: Load simple network info (manual)");
+	opt_text.setCharacterSize(19);
+	opt_text.setFillColor(sf::Color::White);
+	//opt_text.setPosition(text.getPosition().x + opt_text.getGlobalBounds().width/10 , text.getPosition().y + opt_text.getGlobalBounds().height);
+	opt_text.setPosition(20, win_y - 2 * opt_text.getGlobalBounds().height + 70);
+
+	//net_loaded = true;
+
+	// Set font attributes for lower text
+	load_network.setFont(title_font);
+	load_network.setString("\n3: Process loaded network");
+	load_network.setCharacterSize(19);
+	if(manual_net_loaded){
+		//win_x += 70;
+		extra_text = " (from manual input)";
+		c = sf::Color::White;
+		load_network.setFillColor(c);
+		load_network.setStyle(sf::Text::Bold);
+		load_network.setString(load_network.getString() + extra_text);
+		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
+
+	}
+	else if(file_net_loaded){
+		extra_text = " (from file input)";
+		c = sf::Color::White;
+		load_network.setFillColor(c);
+		load_network.setStyle(sf::Text::Bold);
+		load_network.setString(load_network.getString() + extra_text);
+		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
+
+	}
+	else{
+		extra_text = " (no network loaded...)";
+		c = sf::Color(100,100,100,255);
+		load_network.setFillColor(c);
+		load_network.setStyle(sf::Text::Bold | sf::Text::StrikeThrough);
+		load_network.setString(load_network.getString() + extra_text);
+		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
+	}
+
+	// Set font attributes for heading
+	title.setFont(title_font);
+	title.setString("Neural Network Graphical Interface");
+	title.setCharacterSize(25);
+	title.setFillColor(sf::Color::White);
+	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
+	title.setPosition(win_x / 2 - (title.getGlobalBounds().width) / 2, win_y / 50);
+
+
+
+	// Set font attributes for lower text
+	text.setFont(title_font);
+	text.setString("Please select from an option below:");
+	text.setCharacterSize(20);
+	text.setFillColor(sf::Color::White);
+	text.setStyle(sf::Text::Bold);
+	text.setPosition(win_x / 2 - (text.getGlobalBounds().width / 2), title.getPosition().y + text.getGlobalBounds().height + 35);
+
+	//bg.setFillColor(sf::Color::Transparent);
+	//bg.setOutlineColor(sf::Color::White);
+	//bg.setOutlineThickness(5);
+	bg.setTexture(&bg_texture);
+	bg.setPosition(10, text.getPosition().y + text.getGlobalBounds().height - 35);
+	bg.setSize(sf::Vector2f(win_x - bg.getPosition().x*2 + 50 , load_network.getPosition().y - load_network.getGlobalBounds().height - opt_text.getGlobalBounds().height +35));
+
+	settings.setTexture(&settings_texture);
+	settings.setSize(sf::Vector2f(75,75));
+	//settings.setPosition(win_x- settings.getGlobalBounds().width ,load_network.getPosition().y - settings.getGlobalBounds().height/2 - 10);
+	settings.setPosition(text.getPosition().x + text.getGlobalBounds().width + 10 ,text.getPosition().y + text.getGlobalBounds().height/1.5);
+
+
+
+	// ---------------------------------- Rendering Loop --------------------------------------
+	// Setup and open Window
+	// Use the screenScalingFactor and create window
+	window.create(sf::VideoMode(win_x * screenScalingFactor, (win_y + 75) * screenScalingFactor), "Neural Netowrk GUI Interface");
+	//resize_window(&window, sf::Vector2u(window.getSize().x, window.getSize().y+30));
+	platform.setIcon(window.getSystemHandle());
+
+	// While window is open, get current event (monitor for closed)
+	while (window.isOpen())
+	{
+		while (window.pollEvent(event))
+		{
+			// If close event is dectected, exit
+			if (event.type == sf::Event::Closed || event.key.code == sf::Keyboard::Escape)
+			{
+				window.close();
+			}
+			// If option 1 is detected
+			if (event.key.code == sf::Keyboard::Num1)
+			{
+				//window.close();
+				file_net_loaded = true;
+				manual_net_loaded = false;
+				window.close();
+				display_title();
+			}
+			// If option 2 is detected
+			if (event.key.code == sf::Keyboard::Num2)
+			{
+				window.close();
+				display_int_setup();
+			}
+
+		}
+		// Draw Title page
+		window.clear();
+		window.draw(bg);
+		window.draw(settings);
+		window.draw(title);
+		window.draw(load_network);
+		window.draw(text);
+		//window.draw(playerText);
+		window.draw(opt_text);
+		window.display();
+	}
+}
+
+void NN_gui_setup::resize_window(sf::Window* window, sf::Vector2u res){
+	window->setSize(res);
+
+
+}
+
+
+
+
+
 // Open window and display interactive setup for node
 void NN_gui_setup::display_int_setup()
 {
-	win_x = 1000;
+	win_x = 800;
 	win_y = 500;
 
 
@@ -693,166 +860,4 @@ void NN_gui_setup::display_int_setup()
 		}
 		window.display();
 	}
-}
-
-// Display our title with interactive options
-void NN_gui_setup::display_title()
-{
-	win_x = 900;
-	win_y = 600;
-	// Create font and text objects
-	sf::Text title;
-	sf::Text text;
-	sf::Font title_font;
-	sf::Text opt_text;
-	sf::Text load_network;
-
-	sf::Color c;
-
-	sf::RectangleShape bg;
-	sf::RectangleShape settings;
-
-
-
-
-
-
-	sf::Texture bg_texture;
-	sf::Texture settings_texture;
-
-	bg_texture.loadFromFile("content/menu_bg.jpg");
-	settings_texture.loadFromFile("content/settings.jpg");
-
-	// Load font from file
-	if (!title_font.loadFromFile("fonts/akira.otf"))
-	{
-		cout << "FONT NOT FOUND!!\n";
-		exit(EXIT_FAILURE);
-	}
-
-	// Set font attributes for option text
-	opt_text.setFont(title_font);
-	opt_text.setString("1: Load network & inputs from file\n\n2: Load simple network info (manual)");
-	opt_text.setCharacterSize(19);
-	opt_text.setFillColor(sf::Color::White);
-	//opt_text.setPosition(text.getPosition().x + opt_text.getGlobalBounds().width/10 , text.getPosition().y + opt_text.getGlobalBounds().height);
-	opt_text.setPosition(20, win_y - 2 * opt_text.getGlobalBounds().height + 70);
-
-	//net_loaded = true;
-
-	// Set font attributes for lower text
-	load_network.setFont(title_font);
-	load_network.setString("\n3: Process loaded network");
-	load_network.setCharacterSize(19);
-	if(manual_net_loaded){
-		//win_x += 70;
-		extra_text = " (from manual input)";
-		c = sf::Color::White;
-		load_network.setFillColor(c);
-		load_network.setStyle(sf::Text::Bold);
-		load_network.setString(load_network.getString() + extra_text);
-		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
-
-	}
-	else if(file_net_loaded){
-		extra_text = " (from file input)";
-		c = sf::Color::White;
-		load_network.setFillColor(c);
-		load_network.setStyle(sf::Text::Bold);
-		load_network.setString(load_network.getString() + extra_text);
-		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
-
-	}
-	else{
-		extra_text = " (no network loaded...)";
-		c = sf::Color(100,100,100,255);
-		load_network.setFillColor(c);
-		load_network.setStyle(sf::Text::Bold | sf::Text::StrikeThrough);
-		load_network.setString(load_network.getString() + extra_text);
-		load_network.setPosition(20,opt_text.getPosition().y + opt_text.getGlobalBounds().height + 5);
-	}
-
-	// Set font attributes for heading
-	title.setFont(title_font);
-	title.setString("Neural Network Graphical Interface");
-	title.setCharacterSize(25);
-	title.setFillColor(sf::Color::White);
-	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
-	title.setPosition(win_x / 2 - (title.getGlobalBounds().width) / 2, win_y / 50);
-
-
-
-	// Set font attributes for lower text
-	text.setFont(title_font);
-	text.setString("Please select from an option below:");
-	text.setCharacterSize(20);
-	text.setFillColor(sf::Color::White);
-	text.setStyle(sf::Text::Bold);
-	text.setPosition(win_x / 2 - (text.getGlobalBounds().width / 2), title.getPosition().y + text.getGlobalBounds().height + 35);
-
-	//bg.setFillColor(sf::Color::Transparent);
-	//bg.setOutlineColor(sf::Color::White);
-	//bg.setOutlineThickness(5);
-	bg.setTexture(&bg_texture);
-	bg.setPosition(10, text.getPosition().y + text.getGlobalBounds().height - 35);
-	bg.setSize(sf::Vector2f(win_x - bg.getPosition().x*2 + 50 , load_network.getPosition().y - load_network.getGlobalBounds().height - opt_text.getGlobalBounds().height +35));
-
-	settings.setTexture(&settings_texture);
-	settings.setSize(sf::Vector2f(75,75));
-	//settings.setPosition(win_x- settings.getGlobalBounds().width ,load_network.getPosition().y - settings.getGlobalBounds().height/2 - 10);
-	settings.setPosition(text.getPosition().x + text.getGlobalBounds().width + 10 ,text.getPosition().y + text.getGlobalBounds().height/1.5);
-
-
-
-	// ---------------------------------- Rendering Loop --------------------------------------
-	// Setup and open Window
-	// Use the screenScalingFactor and create window
-	window.create(sf::VideoMode(win_x * screenScalingFactor, (win_y + 75) * screenScalingFactor), "Neural Netowrk GUI Interface");
-	//resize_window(&window, sf::Vector2u(window.getSize().x, window.getSize().y+30));
-	platform.setIcon(window.getSystemHandle());
-
-	// While window is open, get current event (monitor for closed)
-	while (window.isOpen())
-	{
-		while (window.pollEvent(event))
-		{
-			// If close event is dectected, exit
-			if (event.type == sf::Event::Closed || event.key.code == sf::Keyboard::Escape)
-			{
-				window.close();
-			}
-			// If option 1 is detected
-			if (event.key.code == sf::Keyboard::Num1)
-			{
-				//window.close();
-				file_net_loaded = true;
-				manual_net_loaded = false;
-				window.close();
-				display_title();
-			}
-			// If option 2 is detected
-			if (event.key.code == sf::Keyboard::Num2)
-			{
-				window.close();
-				display_int_setup();
-			}
-
-		}
-		// Draw Title page
-		window.clear();
-		window.draw(bg);
-		window.draw(settings);
-		window.draw(title);
-		window.draw(load_network);
-		window.draw(text);
-		//window.draw(playerText);
-		window.draw(opt_text);
-		window.display();
-	}
-}
-
-void NN_gui_setup::resize_window(sf::Window* window, sf::Vector2u res){
-	window->setSize(res);
-
-
 }

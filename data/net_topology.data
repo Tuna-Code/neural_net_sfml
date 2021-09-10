@@ -1,0 +1,12 @@
+#Layer_Count:
+3
+#Nodes_Per_Layer:
+[3,2,1]
+#Layer_Actv_Funcs:
+[Null,Sigmoid,Sigmoid]
+#Layer_Init_Weights:
+[0.3,0.3
+0.1,0.2
+0.4.,0.2],
+[0.69,
+-0.420]
