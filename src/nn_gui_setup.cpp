@@ -1,6 +1,7 @@
 #include "nn_gui_setup.h"
 #include "Platform/Platform.hpp"
 #include "layer.h"
+#include "nn_display.h"
 #include "net_helper.h"
 #include "nnet.h"
 #include <iostream>
@@ -150,6 +151,12 @@ void NN_gui_setup::display_title()
 			{
 				window.close();
 			}
+			if(event.type == sf::Event::MouseButtonPressed){
+
+				if(settings.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+						cout << "CLICKED\n";
+				}
+			}
 			// If option 1 is detected
 			if (event.key.code == sf::Keyboard::Num1)
 			{
@@ -165,6 +172,15 @@ void NN_gui_setup::display_title()
 				window.close();
 				display_int_setup();
 			}
+			// If option 2 is detected
+			if (event.key.code == sf::Keyboard::Num3)
+			{
+				window.close();
+				NN_Display* display = NULL;
+				display = new NN_Display(net);
+				display->display_net();
+			}
+
 
 		}
 		// Draw Title page
