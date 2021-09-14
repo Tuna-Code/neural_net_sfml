@@ -20,8 +20,46 @@ NN_Display::NN_Display(Net_Helper* net){
 }
 
 void NN_Display::display_net(){
+	// ---------------------------------------- SETUP ------------------------------
+
+	int layer_count = 10;//net->net->layer_count;
+	int layer_font_size = 25;
 	sf::Text title;
+	sf::Text menu;
 	sf::Font title_font;
+	sf::Text* layer_title = NULL;
+
+	layer_title = new sf::Text[layer_count];
+
+	int spacer = 20;
+
+	if (!title_font.loadFromFile("fonts/akira.otf"))
+	{
+		cout << "FONT NOT FOUND!!\n";
+		exit(EXIT_FAILURE);
+	}
+		// Set font attributes for heading
+	title.setFont(title_font);
+	title.setString("Neural Network Visualizer");
+	title.setCharacterSize(30);
+	title.setFillColor(sf::Color::White);
+	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
+	title.setPosition(win_x / 2 - (title.getGlobalBounds().width) / 2, win_y / 50);
+
+	menu.setFont(title_font);
+	menu.setString("Options");
+	menu.setCharacterSize(15);
+	menu.setFillColor(sf::Color::White);
+	menu.setStyle(sf::Text::Bold | sf::Text::Underlined);
+	menu.setPosition(20,title.getPosition().y + menu.getGlobalBounds().height/2);
+
+
+
+	sf::Vertex menu_line[] =
+	{
+    sf::Vertex(sf::Vector2f(menu.getPosition().x + menu.getGlobalBounds().width + spacer, 0)),
+    sf::Vertex(sf::Vector2f(menu.getPosition().x + menu.getGlobalBounds().width + spacer, win_y))
+	};
 
 
 	window.create(sf::VideoMode(win_x * screenScalingFactor, win_y * screenScalingFactor), "Neural Netowrk GUI Interface");
@@ -31,19 +69,36 @@ void NN_Display::display_net(){
 	net->net->forward_prop();
 	//net->print_network();
 
-	int l2_size = net->net->input_layer->next_layer->next_layer->num_nodes;
 	//cout << l2_size;
 	// Setup layer 2 circles
-	sf::CircleShape* l2 = NULL;
+	double op_x = menu.getPosition().x + menu.getGlobalBounds().width + spacer*2 ;
+	double op_y = title.getPosition().y + title.getGlobalBounds().height  + spacer*2;
+	double layer_space_x = (win_x - op_x) / layer_count;
 
-	l2 = new sf::CircleShape[l2_size];
 
-	for(int i = 1; i <= l2_size; i++){
-		l2[i-1].setRadius(20*i);
-		l2[i-1].setPosition(200*i,200*i);
-		l2[i-1].setFillColor(sf::Color::Black);
-		l2[i-1].setOutlineThickness(2);
-		l2[i-1].setOutlineColor(sf::Color::White);
+	//double chunk_start_x = workable_x / layer_count;
+// ------------------------------------------ IMPLEMENTATION------------------------------
+
+	string temp = "";
+
+	temp = "Layer: " + to_string(0);
+	layer_title[0].setString(temp);
+	layer_title[0].setFont(title_font);
+	layer_title[0].setCharacterSize(layer_font_size);
+	layer_title[0].setFillColor(sf::Color::White);
+	layer_title[0].setStyle(sf::Text::Bold | sf::Text::Underlined);
+	layer_title[0].setPosition(op_x, op_y);
+
+
+	for(int i = 1; i < layer_count; i++){
+		temp = "Layer: " + to_string(i);
+		layer_title[i].setString(temp);
+		layer_title[i].setFont(title_font);
+		layer_title[i].setCharacterSize(layer_font_size);
+		layer_title[i].setFillColor(sf::Color::White);
+		layer_title[i].setStyle(sf::Text::Bold | sf::Text::Underlined);
+		layer_title[i].setPosition(layer_title[i-1].getPosition().x + layer_space_x + spacer, op_y);
+
 
 	}
 
@@ -58,18 +113,6 @@ void NN_Display::display_net(){
 	cir1[0].setPosition(sf::Vector2f(100,100));
 	cir1[1].setPosition(sf::Vector2f(500,500));*/
 	// Load font from file
-	if (!title_font.loadFromFile("fonts/akira.otf"))
-	{
-		cout << "FONT NOT FOUND!!\n";
-		exit(EXIT_FAILURE);
-	}
-		// Set font attributes for heading
-	title.setFont(title_font);
-	title.setString("Neural Network Visualizer");
-	title.setCharacterSize(30);
-	title.setFillColor(sf::Color::White);
-	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
-	title.setPosition(win_x / 2 - (title.getGlobalBounds().width) / 2, win_y / 50);
 
 
 
@@ -88,11 +131,14 @@ void NN_Display::display_net(){
 
 	window.clear();
 
-	for(int i = 0; i < l2_size; i++){
 
-		window.draw(l2[i]);
+	for(int i = 0; i < layer_count; i++){
+		window.draw(layer_title[i]);
 	}
+
 	window.draw(title);
+	window.draw(menu);
+	window.draw(menu_line, 2, sf::Lines);
 	window.display();
 	}
 
