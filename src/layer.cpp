@@ -21,6 +21,12 @@ Layer::Layer(int num, int num_nodes, string actv_func, double* input, double* ou
     this->next_layer = NULL;
     this->prev_layer = NULL;
     this->layer_product = NULL;
+
+    orig_input = new double[num_nodes];
+    orig_output = new double[num_nodes];
+    memcpy(orig_input, input, sizeof(double)*num_nodes); // Layer input array
+    memcpy(orig_output, output, sizeof(double)*num_nodes);
+
 }
 
 // Manually compute layers procuts (input for next layer)
