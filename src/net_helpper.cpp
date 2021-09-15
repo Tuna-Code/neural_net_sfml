@@ -38,6 +38,31 @@ void Net_Helper::print_network()
 	}
 }
 
+// Reset network to original values before forward/backward prop
+void Net_Helper::reset_network(){
+
+	// Grab input layer
+	Layer* temp = net->input_layer;
+
+	// Loop through each layer
+	for(int i = 0; i < net->layer_count; i++){
+
+		// Copy original output to output vector
+		memcpy(temp->output, temp->orig_output, sizeof(double)*temp->num_nodes);
+		// If not input layer, copy original input to layer
+		if(temp != net->input_layer){
+			memcpy(temp->input, temp->orig_input, sizeof(double)*temp->num_nodes);
+		}
+		// Loop through our weight arrays and reset to original values
+		for (int j = 0; j < temp->weight_rows; j++)
+   		{
+        	memcpy(temp->weights[j], temp->orig_weights[j], sizeof(double)*temp->weight_cols );
+		}
+
+		// Go to next layer
+		temp = temp->next_layer;
+	}
+}
 // Interactive network setup
 void Net_Helper::setup_network()
 {
@@ -122,11 +147,9 @@ void Net_Helper::setup_network()
 // Manual network setup (for pre-computed networks in my notebook - for testing)
 void Net_Helper::setup_test_net(int option)
 {
-
 	// If network 0 is chosen
 	if (option == 0)
 	{
-
 		// Setup Layer 0
 
 		// Initialize our layer info
@@ -194,4 +217,6 @@ void Net_Helper::setup_test_net(int option)
 
 		net->add_layer(3, node_count, "Sigmoid", weights, weight_rows, weight_cols);
 	}
+
+
 }

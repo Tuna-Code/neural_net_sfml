@@ -16,6 +16,7 @@ class Net_Helper{
         void setup_test_net(int option);
         void print_network();
         void setup_network();
+        void reset_network();
 
 
 };

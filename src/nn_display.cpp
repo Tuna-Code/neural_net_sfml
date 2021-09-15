@@ -25,6 +25,7 @@ NN_Display::NN_Display(Net_Helper* net){
 
 	layer_ptr = NULL;
 	update_stats = false;
+	output_layer = false;
 
 
 }
@@ -49,6 +50,19 @@ void NN_Display::display_net(){
 
 	sf::Color bg_button(128, 128, 128);
 
+	// Setup node circle arrays
+	sf::CircleShape** nodes = NULL;
+	Layer *l = net->net->input_layer;
+
+	nodes = new sf::CircleShape*[layer_count];
+	for(int i=0; i<layer_count; i++){
+		nodes[i] = new sf::CircleShape[l->num_nodes];
+		l = l->next_layer;
+	}
+
+
+
+
 
 	//bool display_layer = false;
 
@@ -56,6 +70,9 @@ void NN_Display::display_net(){
 	layer_title = new sf::Text[layer_count];
 
 	int spacer = 10;
+
+	int node_rad = 40;
+	int node_thickness = 5;
 
 	if (!title_font.loadFromFile("fonts/akira.otf"))
 	{
@@ -109,11 +126,14 @@ void NN_Display::display_net(){
 
 
 
+
 	sf::Vertex menu_line[] =
 	{
     sf::Vertex(sf::Vector2f(menu.getPosition().x + menu.getGlobalBounds().width + spacer, 0)),
     sf::Vertex(sf::Vector2f(menu.getPosition().x + menu.getGlobalBounds().width + spacer, win_y))
 	};
+
+
 
 
 	window.create(sf::VideoMode(win_x * screenScalingFactor, win_y * screenScalingFactor), "Neural Netowrk GUI Interface");
@@ -126,6 +146,10 @@ void NN_Display::display_net(){
 	// Setup layer 2 circles
 	double op_x = menu.getPosition().x + menu.getGlobalBounds().width + spacer*2 ;
 	double op_y = title.getPosition().y + title.getGlobalBounds().height  + spacer*2;
+
+	//double working_x = win_x - op_x;
+	double working_y = win_y - op_y;
+
 	double layer_space_x = (win_x - op_x) / layer_count;
 
 
@@ -154,6 +178,62 @@ void NN_Display::display_net(){
 
 
 	}
+
+	l = net->net->input_layer;
+	int center_x = 0;
+	int start_y = working_y/2;
+	// For each layer
+	for(int i = 0; i < layer_count; i++){
+		// For each node in layer
+		center_x = layer_title[i].getPosition().x + layer_title[i].getGlobalBounds().width/2 - node_rad;
+		start_y -= (l->num_nodes-1)*2*node_rad;
+		for(int j=0; j < l->num_nodes; j++){
+			nodes[i][j].setRadius(node_rad);
+			nodes[i][j].setFillColor(sf::Color::Transparent);
+			nodes[i][j].setOutlineColor(sf::Color::White);
+			nodes[i][j].setOutlineThickness(node_thickness);
+			nodes[i][j].setPosition(center_x, start_y + j*4*node_rad);
+
+			//nodes[i][j].setPosition(layer_title[i].getPosition().x, layer_title[i].getPosition().y + layer_title[i].getGlobalBounds().height + j*spacer + 50);
+		}
+		start_y = working_y/2;
+
+		l = l->next_layer;
+	}
+
+	//weight_rows = node_count[i];
+	//weight_cols = node_count[i + 1];
+
+	l = net->net->input_layer->next_layer;
+
+	sf::Vertex** lines = NULL;
+	lines = new sf::Vertex*[l->next_layer->num_nodes];
+
+	for (int j = 0; j < l->next_layer->num_nodes; j++)
+	{
+		lines[j] = new sf::Vertex[2];
+	}
+
+
+	for(int j = 0; j < l->next_layer->num_nodes; j++){
+		printf("Line from N%i to N%i\n",0,j);
+		lines[j][0].position = sf::Vector2f(nodes[1][0].getPosition().x + 2*node_rad + node_thickness , nodes[1][0].getPosition().y + node_rad);
+		lines[j][1].position = sf::Vector2f(nodes[2][j].getPosition().x - node_thickness ,nodes[2][j].getPosition().y + node_rad);
+	}
+
+
+
+	sf::Vertex test_lines[2][2];
+	test_lines[0][0].position = sf::Vector2f(nodes[0][0].getPosition().x + 2*node_rad + node_thickness , nodes[0][0].getPosition().y + node_rad);
+	test_lines[0][0].color = sf::Color::Green;
+	test_lines[0][1].position = sf::Vector2f(nodes[1][0].getPosition().x - node_thickness ,nodes[1][0].getPosition().y + node_rad);
+	test_lines[0][1].color = sf::Color::Red;
+
+	test_lines[1][0].position = sf::Vector2f(nodes[0][0].getPosition().x + 2*node_rad + node_thickness , nodes[0][0].getPosition().y + node_rad);
+	test_lines[1][0].color = sf::Color::Red;
+	test_lines[1][1].position = sf::Vector2f(nodes[1][1].getPosition().x - node_thickness ,nodes[1][1].getPosition().y + node_rad);
+	test_lines[1][1].color = sf::Color::Green;
+
 
 
 	/*cir1[0].setRadius(100);
@@ -186,9 +266,18 @@ void NN_Display::display_net(){
 							layer_ptr = net->net->input_layer;
 							if(i != 0){
 								for(int j = 0; j < i; j++){
-									layer_ptr = layer_ptr->next_layer;
+									if(layer_ptr->next_layer != NULL){
+										layer_ptr = layer_ptr->next_layer;
+									}
 								}
 							}
+							if(layer_ptr == net->net->last_layer){
+								output_layer = true;
+							}
+							else{
+								output_layer = false;
+							}
+
 							if(!stats_window_open){
 								t1 = new std::thread(&NN_Display::display_layer_stats, this);
 								stats_window_open = true;
@@ -197,17 +286,14 @@ void NN_Display::display_net(){
 				}
 
 				// Check if clicked on control buttons
+				// If forward prop is clicked
 				if(forward_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
 					net->net->forward_prop();
+
 				}
+				// If reset is clicked
 				if(reset_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
-					Layer* temp = net->net->input_layer;
-					for(int i = 0; i < layer_count; i++){
-						memcpy(temp->output, temp->orig_output, sizeof(double)*temp->num_nodes);
-
-						temp = temp->next_layer;
-					}
-
+					net->reset_network();
 				}
 
 			}
@@ -222,7 +308,17 @@ void NN_Display::display_net(){
 	for(int i = 0; i < layer_count; i++){
 		window.draw(layer_title[i]);
 	}
+	l = net->net->input_layer;
 
+	// For each layer
+	for(int i = 0; i < layer_count; i++){
+		// For each node in layer
+		for(int j=0; j < l->num_nodes; j++){
+			window.draw(nodes[i][j]);
+		}
+
+		l = l->next_layer;
+	}
 	window.draw(title);
 	window.draw(menu);
 	window.draw(forward_rect);
@@ -231,6 +327,11 @@ void NN_Display::display_net(){
 	window.draw(forward_text);
 	window.draw(reset_text);
 	window.draw(menu_line, 2, sf::Lines);
+	window.draw(test_lines[0], 2, sf::Lines);
+	window.draw(test_lines[1], 2, sf::Lines);
+	window.draw(lines[0], 2, sf::Lines);
+	window.draw(lines[1], 2, sf::Lines);
+	window.draw(lines[2], 2, sf::Lines);
 	window.display();
 	}
 
@@ -244,17 +345,12 @@ void NN_Display::display_layer_stats(){
 
 	// Pixel spacer and bool to determine if we're on the output layer
 	int spacer = 20;
-	bool output_layer = false;
-
-	//Layer* layer = layer_ptr;
 
 
-	if(layer_ptr == net->net->last_layer){
-		output_layer = true;
-	}
-	else{
-		output_layer = false;
-	}
+
+
+
+
 	//layer->print_layer_info();
 
 
@@ -280,13 +376,8 @@ void NN_Display::display_layer_stats(){
 
 // ---------------- Window Open -------------
 	while (layer_data_window.isOpen()){
+		Layer* temp_layer = layer_ptr;
 
-		if(layer_ptr == net->net->last_layer){
-			output_layer = true;
-		}
-		else{
-			output_layer = false;
-		}
 		title.setFont(title_font);
 		title.setString("Layer " + to_string(layer_ptr->num) + " Stats");
 		title.setCharacterSize(max_font_size * 0.83);
@@ -326,6 +417,7 @@ void NN_Display::display_layer_stats(){
 
 		// ---- Setup weight data
 		if(!output_layer){
+
 			weight_title.setFont(title_font);
 			weight_title.setString("* Layer Weight Matrix:\n----------");
 			weight_title.setCharacterSize(max_font_size * 0.66667);
@@ -342,16 +434,20 @@ void NN_Display::display_layer_stats(){
 
 			// Generate weight matrix string
 			temp = "[";
-			for(int i=0; i < layer_ptr->weight_rows; i++){
-				for(int j=0; j < layer_ptr->weight_cols; j++){
-					temp = temp + to_string(layer_ptr->weights[i][j]) + ", ";
+			for(int i=0; i < temp_layer->weight_rows; i++){
+				for(int j=0; j < temp_layer->weight_cols; j++){
+					temp = temp + to_string(temp_layer->weights[i][j]) + ", ";
 				}
 				temp = temp + "\n";
 			}
-			temp.pop_back();
-			temp.pop_back();
-			temp.pop_back();
-			temp = temp +  "]";
+
+			// In case layer_ptr was changed mid render, preventing segfault
+			if(temp.length() > 3){
+				temp.pop_back();
+				temp.pop_back();
+				temp.pop_back();
+				temp = temp +  "]";
+			}
 
 			weight_stats.setFont(title_font);
 			weight_stats.setString(temp);
@@ -359,7 +455,9 @@ void NN_Display::display_layer_stats(){
 			weight_stats.setFillColor(sf::Color::White);
 			weight_stats.setStyle(sf::Text::Bold );
 			weight_stats.setPosition(x / 2 - weight_stats.getGlobalBounds().width/2, weight_sub.getPosition().y + weight_sub.getGlobalBounds().height + spacer);
-		}else{
+		}
+		else{
+
 			weight_title.setFont(title_font);
 			weight_title.setString("* Output layer doesn't have weights!:\n----------");
 			weight_title.setCharacterSize(max_font_size * 0.66667);

@@ -21,6 +21,7 @@ class NN_Display{
 		int max_font_size;
 		Layer* layer_ptr;
 		bool update_stats;
+		bool output_layer;
 
 		double win_x;
 		double win_y;
