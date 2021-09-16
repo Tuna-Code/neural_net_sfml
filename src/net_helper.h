@@ -17,6 +17,7 @@ class Net_Helper{
         void print_network();
         void setup_network();
         void reset_network();
+        void delete_network();
 
 
 };

@@ -812,31 +812,7 @@ void NN_gui_setup::display_int_setup()
 								window.draw(weight_data);
 							}
 							window.display();
-							// Clear out NN layers from memory
-							Layer* cur = net->net->input_layer;
-							Layer* next = cur->next_layer;
-							int i = 0;
-							while(cur != NULL){
-								cout << i << endl;
-								cur->next_layer = NULL;
-								cur->prev_layer = NULL;
-
-
-								delete cur->input;
-								delete cur->output;
-								delete cur->weights;
-
-								delete cur;
-
-								cur = next;
-								if(cur != NULL){
-									next = cur->next_layer;
-								}
-							}
-							net->net->cur_layer = NULL;
-							net->net->last_layer = NULL;
-							net->net->input_layer = NULL;
-							net->net->layer_count = 0;
+							net->delete_network();
 
 							sf::sleep(sf::milliseconds(500));
 							window.close();

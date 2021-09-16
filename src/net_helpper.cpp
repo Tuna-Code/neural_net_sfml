@@ -63,6 +63,36 @@ void Net_Helper::reset_network(){
 		temp = temp->next_layer;
 	}
 }
+
+// Delete and clear memory of all network values (start fresh)
+// Clear out NN layers from memory
+void Net_Helper::delete_network(){
+	Layer* cur = net->input_layer;
+	Layer* next = cur->next_layer;
+	int i = 0;
+	while(cur != NULL){
+		cout << i << endl;
+		cur->next_layer = NULL;
+		cur->prev_layer = NULL;
+
+
+		delete cur->input;
+		delete cur->output;
+		delete cur->weights;
+
+		delete cur;
+
+		cur = next;
+		if(cur != NULL){
+			next = cur->next_layer;
+		}
+	}
+	net->cur_layer = NULL;
+	net->last_layer = NULL;
+	net->input_layer = NULL;
+	net->layer_count = 0;
+}
+
 // Interactive network setup
 void Net_Helper::setup_network()
 {

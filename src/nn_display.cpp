@@ -6,6 +6,9 @@
 #include <string>
 #include "nn_display.h"
 #include <thread>
+#include <math.h>
+
+#define PI 3.14159265
 
 
 using namespace std;
@@ -17,8 +20,8 @@ NN_Display::NN_Display(Net_Helper* net){
 	this->net = net;
 
 	// Set initial resolution
-	win_x = 1440;
-	win_y = 900;
+	win_x = 1920;
+	win_y = 1080;
 	// Set max font size (TODO: Change this based on resolution)
 	max_font_size = 28;
 
@@ -68,6 +71,7 @@ void NN_Display::display_net(){
 	sf::Text options;
 	sf::Text forward_text;
 	sf::Text reset_text;
+	sf::Text delete_text;
 
 	// 2d Text array for titles of our layer serctions
 	sf::Text* layer_title = NULL;
@@ -76,6 +80,7 @@ void NN_Display::display_net(){
 	// Rectangle shapes for menu buttons
 	sf::RectangleShape forward_rect;
 	sf::RectangleShape reset_rect;
+	sf::RectangleShape delete_rect;
 
 	// Object for our text font and then load. Exit if not found
 	sf::Font title_font;
@@ -115,7 +120,7 @@ void NN_Display::display_net(){
 	options.setCharacterSize(max_font_size * .66667);
 	options.setFillColor(sf::Color::White);
 	options.setStyle(sf::Text::Bold | sf::Text::Underlined);
-	options.setPosition(20,title.getPosition().y + options.getGlobalBounds().height/2);
+	options.setPosition(spacer/1.5,title.getPosition().y + options.getGlobalBounds().height/2);
 
 	// Verticies for line dividing menu from net display
 	sf::Vertex options_line[] =
@@ -132,7 +137,7 @@ void NN_Display::display_net(){
 	forward_text.setPosition(options.getPosition().x,options.getPosition().y +spacer*2.5 + options.getGlobalBounds().height/2);
 
 	forward_rect.setPosition(forward_text.getPosition().x, forward_text.getPosition().y);
-	forward_rect.setSize(sf::Vector2f(forward_text.getGlobalBounds().width + spacer, forward_text.getGlobalBounds().height*2));
+	forward_rect.setSize(sf::Vector2f(forward_text.getGlobalBounds().width, forward_text.getGlobalBounds().height*2));
 	forward_rect.setFillColor(bg_button);
 	forward_rect.setOutlineColor(sf::Color::White);
 	forward_rect.setOutlineThickness(1);
@@ -150,9 +155,22 @@ void NN_Display::display_net(){
 	reset_rect.setOutlineColor(sf::Color::White);
 	reset_rect.setOutlineThickness(1);
 
+	// Set attributes for delete button
+	delete_text.setFont(title_font);
+	delete_text.setString("Clear Net");
+	delete_text.setCharacterSize(max_font_size * .5);
+	delete_text.setFillColor(sf::Color::Black);
+	delete_text.setPosition(options.getPosition().x,win_y - delete_text.getGlobalBounds().height*2 - spacer);
+
+	delete_rect.setPosition(delete_text.getPosition().x, delete_text.getPosition().y);
+	delete_rect.setSize(sf::Vector2f(delete_text.getGlobalBounds().width + spacer, delete_text.getGlobalBounds().height*2));
+	delete_rect.setFillColor(bg_button);
+	delete_rect.setOutlineColor(sf::Color::White);
+	delete_rect.setOutlineThickness(1);
+
 	// Create window and set position to far left and set icon
 	window.create(sf::VideoMode(win_x * screenScalingFactor, win_y * screenScalingFactor), "Neural Netowrk GUI Interface");
-	window.setPosition(sf::Vector2(20, 20));
+	window.setPosition(sf::Vector2(10, 10));
 	platform.setIcon(window.getSystemHandle());
 
 // ---------------------------------------- Generate Layer Titles and Positions ----------------------------
@@ -217,8 +235,18 @@ void NN_Display::display_net(){
 	sf::CircleShape cur_node;
 	sf::CircleShape dest_node;
 
+	sf::Text weight_text;
+
+
 	// Start on the input layer
 	l = net->net->input_layer;
+
+	weight_text.setFont(title_font);
+	weight_text.setCharacterSize(12);
+	weight_text.setFillColor(sf::Color::White);
+	weight_text.setStyle(sf::Text::Bold);
+	weight_text.setString(to_string(l->weights[0][0]));
+
 	// Setup our 3d array for lines (2 x 2 matrix but each entry is a vertex array of size 2 (start and end verticies))
 	// x = layer number, i = line for that layer connection descending
 	for(int x = 0; x < layer_count-1; x++){
@@ -249,6 +277,7 @@ void NN_Display::display_net(){
 				test_lines[x][cur_line][0].color = sf::Color::Green;
 				test_lines[x][cur_line][1].position = sf::Vector2f(dest_node.getPosition().x - node_thickness ,dest_node.getPosition().y + node_rad);
 				test_lines[x][cur_line][1].color = sf::Color::Red;
+
 				// Increment our line counter
 				cur_line++;
 			}
@@ -256,6 +285,24 @@ void NN_Display::display_net(){
 		// Go to next layer in linked list
 		l = l->next_layer;
 	}
+	// Get start and end points of first line
+	int beg_x = test_lines[0][0][0].position.x;
+	int end_x = test_lines[0][0][1].position.x;
+	int beg_y = test_lines[0][0][0].position.y;
+	int end_y = test_lines[0][0][1].position.y;
+
+	// Compute the mid points based on text width/height
+	int mid_x = beg_x + ((end_x - beg_x)/2) - weight_text.getGlobalBounds().width/2;// + test_lines[0][0][1].position.x/2;
+	int mid_y = beg_y - ((beg_y - end_y)/2) - weight_text.getGlobalBounds().height/2;// - ((test_lines[0][1]->position.y - test_lines[0][0]->position.y)/2);
+
+	// Compute angle with trig
+	double x_test = end_x - beg_x;
+	double y_test = beg_y - end_y;
+	printf("%f %f\n", x_test,y_test);
+	double angle = atan(y_test/x_test) * (180.0 / PI);
+	cout << angle;
+	weight_text.setPosition(mid_x ,mid_y);
+	weight_text.setRotation(-angle);
 
 // ---------------------------------------- Open Main Loop --------------------------------------------------
 	// Window open loop
@@ -309,7 +356,7 @@ void NN_Display::display_net(){
 					for(int j=0; j < l->num_nodes; j++){
 						if(nodes[i][j].getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
 
-							if((cur_node_disp_layer != i) || (cur_node_disp_node != j)){
+							if((cur_node_disp_layer != i) || (cur_node_disp_node != j || !node_window_open)){
 								// Update our node layer/position pointers:D
 								memcpy(node_disp_layer,&i,sizeof(int));
 								memcpy(node_disp_node,&j,sizeof(int));
@@ -346,6 +393,16 @@ void NN_Display::display_net(){
 					update_node_window =true;
 				}
 
+				// If delete is clicked
+				if(delete_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+					net->delete_network();
+					//window.close();
+
+
+					//display_net();
+
+				}
+
 			}
 
 		}
@@ -377,10 +434,12 @@ void NN_Display::display_net(){
 	// Draw our button rectangles (done before text)
 	window.draw(forward_rect);
 	window.draw(reset_rect);
+	window.draw(delete_rect);
 
 	// Draw our button text
 	window.draw(forward_text);
 	window.draw(reset_text);
+	window.draw(delete_text);
 
 	// Draw line dividing options and display sections
 	window.draw(options_line, 2, sf::Lines);
@@ -396,6 +455,7 @@ void NN_Display::display_net(){
 		l = l->next_layer;
 	}
 
+	window.draw(weight_text);
 	// Display our window
 	window.display();
 	}
@@ -408,7 +468,7 @@ void NN_Display::display_node_stats(){
 
 
 	double x = 500;
-	double y = 400;
+	double y = 300;
 
 	int spacer = 10;
 
@@ -437,7 +497,7 @@ void NN_Display::display_node_stats(){
 
 	// Create new window and set to right of main window
 	node_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "");
-	node_data_window.setPosition(sf::Vector2((int)window.getPosition().x + (int)window.getSize().x - (int)x, (int)window.getPosition().y + (int)window.getSize().y + 25));
+	node_data_window.setPosition(sf::Vector2((int)layer_data_window.getPosition().x, (int)layer_data_window.getPosition().y + (int)layer_data_window.getSize().y + 10));
 
 	// ---------------------------------------- Main Open Loop --------------------------------------------------
 	int layer_num = 0;
@@ -502,7 +562,7 @@ void NN_Display::display_layer_stats(){
 // ---------------------------------------- Initial Setuo ---------------------------------------------------
 
 	// Set initial resolution
-	double x = 800;
+	double x = 600;
 	double y = 700;
 
 	// Set pixel spacer
@@ -583,7 +643,7 @@ void NN_Display::display_layer_stats(){
 			}
 			temp = temp + to_string(layer_ptr->output[layer_ptr->num_nodes-1]) + "]";
 			// Add string form to stats
-			layer_stats.setString(layer_stats.getString() + "* Layer Output Vector: \n----------\n" + temp + "\n\n----------------------------------------\n");
+			layer_stats.setString(layer_stats.getString() + "* Layer Output Vector: \n----------\n" + temp + "\n\n----------------------------------\n");
 
 			// Generate weight matrix in string form if not on output layer (no weights)
 			if(!output_layer){
@@ -616,7 +676,7 @@ void NN_Display::display_layer_stats(){
 			}
 			// If on output layer, notify user
 			else{
-				weight_title.setString("* Output layer doesn't have weights!:\n----------");
+				weight_title.setString("* Output layer - No Weights...\n----------");
 				weight_title.setPosition(title.getPosition().x, layer_stats.getPosition().y + layer_stats.getGlobalBounds().height + spacer);
 			}
 			update_stats_window = false;
