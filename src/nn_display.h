@@ -32,6 +32,7 @@ class NN_Display{
 		bool output_layer;
 		bool update_stats_window;
 		bool update_node_window;
+		bool display_weight_text;
 
 		double win_x;
 		double win_y;

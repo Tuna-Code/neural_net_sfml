@@ -46,11 +46,18 @@ NN_Display::NN_Display(Net_Helper* net){
 	disp_layer = -1;
 	cur_node_disp_layer = -1;
 	cur_node_disp_node = -1;
+
+	display_weight_text = false;
 }
 
 // Main function to display loaded network visually and dynamically
 void NN_Display::display_net(){
+start_display:
 
+	if(net->net->input_layer == NULL){
+		cout << "No net loaded!";
+		return;
+	}
 // ---------------------------------------- Initial Display Setup ------------------------------------------
 	// Temp layer pointer used throughout app
 	Layer* l = NULL;
@@ -72,6 +79,7 @@ void NN_Display::display_net(){
 	sf::Text forward_text;
 	sf::Text reset_text;
 	sf::Text delete_text;
+	sf::Text display_weights_text;
 
 	// 2d Text array for titles of our layer serctions
 	sf::Text* layer_title = NULL;
@@ -81,13 +89,14 @@ void NN_Display::display_net(){
 	sf::RectangleShape forward_rect;
 	sf::RectangleShape reset_rect;
 	sf::RectangleShape delete_rect;
+	sf::RectangleShape display_weights_rect;
 
 	// Object for our text font and then load. Exit if not found
 	sf::Font title_font;
 	if (!title_font.loadFromFile("fonts/akira.otf"))
 	{
 		cout << "FONT NOT FOUND!!\n";
-		exit(EXIT_FAILURE);
+		std::exit(EXIT_FAILURE);
 	}
 
 	// Background color for Buttons (gray-ish);
@@ -116,8 +125,8 @@ void NN_Display::display_net(){
 
 	// Set attributes for menu section heading
 	options.setFont(title_font);
-	options.setString("Options");
-	options.setCharacterSize(max_font_size * .66667);
+	options.setString("Options    ");
+	options.setCharacterSize(max_font_size * .6667);
 	options.setFillColor(sf::Color::White);
 	options.setStyle(sf::Text::Bold | sf::Text::Underlined);
 	options.setPosition(spacer/1.5,title.getPosition().y + options.getGlobalBounds().height/2);
@@ -154,6 +163,19 @@ void NN_Display::display_net(){
 	reset_rect.setFillColor(bg_button);
 	reset_rect.setOutlineColor(sf::Color::White);
 	reset_rect.setOutlineThickness(1);
+
+	// Set attributes for display weights button
+	display_weights_text.setFont(title_font);
+	display_weights_text.setString("Disp. Weights");
+	display_weights_text.setCharacterSize(max_font_size * .5);
+	display_weights_text.setFillColor(sf::Color::Black);
+	display_weights_text.setPosition(options.getPosition().x,reset_rect.getPosition().y +spacer*2.5 + reset_rect.getGlobalBounds().height/2);
+
+	display_weights_rect.setPosition(display_weights_text.getPosition().x, display_weights_text.getPosition().y);
+	display_weights_rect.setSize(sf::Vector2f(display_weights_text.getGlobalBounds().width + spacer, display_weights_text.getGlobalBounds().height*2));
+	display_weights_rect.setFillColor(bg_button);
+	display_weights_rect.setOutlineColor(sf::Color::White);
+	display_weights_rect.setOutlineThickness(1);
 
 	// Set attributes for delete button
 	delete_text.setFont(title_font);
@@ -235,17 +257,9 @@ void NN_Display::display_net(){
 	sf::CircleShape cur_node;
 	sf::CircleShape dest_node;
 
-	sf::Text weight_text;
-
 
 	// Start on the input layer
 	l = net->net->input_layer;
-
-	weight_text.setFont(title_font);
-	weight_text.setCharacterSize(12);
-	weight_text.setFillColor(sf::Color::White);
-	weight_text.setStyle(sf::Text::Bold);
-	weight_text.setString(to_string(l->weights[0][0]));
 
 	// Setup our 3d array for lines (2 x 2 matrix but each entry is a vertex array of size 2 (start and end verticies))
 	// x = layer number, i = line for that layer connection descending
@@ -285,24 +299,92 @@ void NN_Display::display_net(){
 		// Go to next layer in linked list
 		l = l->next_layer;
 	}
-	// Get start and end points of first line
-	int beg_x = test_lines[0][0][0].position.x;
-	int end_x = test_lines[0][0][1].position.x;
-	int beg_y = test_lines[0][0][0].position.y;
-	int end_y = test_lines[0][0][1].position.y;
 
-	// Compute the mid points based on text width/height
-	int mid_x = beg_x + ((end_x - beg_x)/2) - weight_text.getGlobalBounds().width/2;// + test_lines[0][0][1].position.x/2;
-	int mid_y = beg_y - ((beg_y - end_y)/2) - weight_text.getGlobalBounds().height/2;// - ((test_lines[0][1]->position.y - test_lines[0][0]->position.y)/2);
 
-	// Compute angle with trig
-	double x_test = end_x - beg_x;
-	double y_test = beg_y - end_y;
-	printf("%f %f\n", x_test,y_test);
-	double angle = atan(y_test/x_test) * (180.0 / PI);
-	cout << angle;
-	weight_text.setPosition(mid_x ,mid_y);
-	weight_text.setRotation(-angle);
+//---------------------- Generate our text object array for displaying weights -----------------------------
+
+	// Allocate text object array and select desired layer for testing
+	sf::Text** weight_text = NULL;
+	weight_text = new sf::Text*[net->net->layer_count-1];
+
+	// Vertex objects to hold start and end of current line for simplifing logic
+	sf::Vertex line_start;
+	sf::Vertex line_end;
+	// What line in layer are we currently on
+	int line_counter;
+	// Pixel gab (how far text is above line once rotated)
+	int gap = 5;
+	// Variables for computing text positions based on line data
+	int beg_x;
+	int end_x;
+	int beg_y;
+	int end_y;
+	double x_diff;
+	double y_diff;
+	double mid_x;
+	double mid_y;
+	double angle;
+	int num_weights;
+
+	// Start on our input layer
+	l = net->net->input_layer;
+
+	// Iterate through each layer and generate weight text objects
+	for(int x = 0; x < net->net->layer_count - 1; x++){
+
+		// Reset line counter to 0 and compute how many weight lines are on this layer
+		line_counter = 0;
+		num_weights = l->num_nodes*l->next_layer->num_nodes;
+
+		// Allocate our weight array of text objects
+		weight_text[x] = new sf::Text[num_weights];
+
+		// Loop through each node in our current layer and compute text data connectiong to each node in next layer
+		for(int i = 0; i < l->num_nodes; i++){
+			for(int j = 0; j < l->next_layer->num_nodes; j++){
+
+				// For our current node pair, grab the weight lines beginning and end vertex
+				line_start = test_lines[x][line_counter][0];
+				line_end = test_lines[x][line_counter][1];
+
+				// Set text display attributes and text origin to center
+				weight_text[x][line_counter].setFont(title_font);
+				weight_text[x][line_counter].setCharacterSize(12);
+				weight_text[x][line_counter].setFillColor(sf::Color::White);
+				weight_text[x][line_counter].setStyle(sf::Text::Bold);
+				weight_text[x][line_counter].setString(to_string(l->weights[i][j]));
+				weight_text[x][line_counter].setOrigin(weight_text[x][line_counter].getGlobalBounds().width/2, weight_text[x][line_counter].getGlobalBounds().height/2);
+
+				// Grab beginning and end coords of current line
+				beg_x = line_start.position.x;
+				end_x = line_end.position.x;
+				beg_y = line_start.position.y;
+				end_y = line_end.position.y;
+
+				// Compute differences in x and y for start and end verticies
+				x_diff = end_x - beg_x;
+				y_diff = beg_y - end_y;
+
+				// Compute angel needed to rotate (inverse tangent) then convert from radians to degrees
+				angle = atan(y_diff/x_diff) * (180.0 / PI);
+
+				// Compute middle of line position + add gap for visibility
+				mid_x = beg_x + (x_diff/2);
+				mid_y = beg_y - (y_diff/2) - weight_text[x][line_counter].getGlobalBounds().height - gap;
+
+				// Set text to middle of line + gap and rotate
+				weight_text[x][line_counter].setPosition(mid_x ,mid_y);
+				weight_text[x][line_counter].setRotation(-angle);
+
+				// Increment to the next line and continue
+				line_counter++;
+			}
+		}
+		// Move to next layer
+		l = l->next_layer;
+	}
+
+
 
 // ---------------------------------------- Open Main Loop --------------------------------------------------
 	// Window open loop
@@ -393,11 +475,16 @@ void NN_Display::display_net(){
 					update_node_window =true;
 				}
 
+				// If display weights is clicked
+				if(display_weights_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+					display_weight_text = !display_weight_text;
+				}
+
 				// If delete is clicked
 				if(delete_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
 					net->delete_network();
-					//window.close();
-
+					window.close();
+					goto start_display;
 
 					//display_net();
 
@@ -434,11 +521,13 @@ void NN_Display::display_net(){
 	// Draw our button rectangles (done before text)
 	window.draw(forward_rect);
 	window.draw(reset_rect);
+	window.draw(display_weights_rect);
 	window.draw(delete_rect);
 
 	// Draw our button text
 	window.draw(forward_text);
 	window.draw(reset_text);
+	window.draw(display_weights_text);
 	window.draw(delete_text);
 
 	// Draw line dividing options and display sections
@@ -455,7 +544,17 @@ void NN_Display::display_net(){
 		l = l->next_layer;
 	}
 
-	window.draw(weight_text);
+	// Loop through our text array for displaying weight values
+	if(display_weight_text){
+		l = net->net->input_layer;
+		for(int i = 0; i < net->net->layer_count - 1; i++){
+			for(int j = 0; j < l->num_nodes*l->next_layer->num_nodes; j++){
+				window.draw(weight_text[i][j]);
+			}
+			l = l->next_layer;
+		}
+	}
+
 	// Display our window
 	window.display();
 	}
@@ -480,7 +579,7 @@ void NN_Display::display_node_stats(){
 	sf::Font title_font;
 	if (!title_font.loadFromFile("fonts/akira.otf")){
 		cout << "FONT NOT FOUND!!\n";
-		exit(EXIT_FAILURE);
+		std::exit(EXIT_FAILURE);
 	}
 
 	title.setFont(title_font);
@@ -580,7 +679,7 @@ void NN_Display::display_layer_stats(){
 	if (!title_font.loadFromFile("fonts/akira.otf"))
 	{
 		cout << "FONT NOT FOUND!!\n";
-		exit(EXIT_FAILURE);
+		std::exit(EXIT_FAILURE);
 	}
 
 	// Create new window and set to right of main window
