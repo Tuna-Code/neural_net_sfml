@@ -18,6 +18,7 @@ class Net_Helper{
         void setup_network();
         void reset_network();
         void delete_network();
+        void load_from_file();
 
 
 };

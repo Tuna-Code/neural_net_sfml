@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 
+
+
 using namespace std;
 
 NN_gui_setup::NN_gui_setup(Net_Helper* net)
@@ -22,6 +24,9 @@ NN_gui_setup::NN_gui_setup(Net_Helper* net)
 	extra_text = "";
 	manual_net_loaded = false;
 	file_net_loaded = false;
+
+	display = new NN_Display(net);
+
 }
 
 
@@ -160,25 +165,32 @@ void NN_gui_setup::display_title()
 			// If option 1 is detected
 			if (event.key.code == sf::Keyboard::Num1)
 			{
-				//window.close();
+
 				file_net_loaded = true;
 				manual_net_loaded = false;
 				window.close();
+				net->load_from_file();
 				display_title();
+
 			}
 			// If option 2 is detected
 			if (event.key.code == sf::Keyboard::Num2)
 			{
+				// Close window and go to interactive input
 				window.close();
 				display_int_setup();
 			}
-			// If option 2 is detected
+			// If option 3 is detected
 			if (event.key.code == sf::Keyboard::Num3)
 			{
+				if(net->net->input_layer != NULL){
+				// Close window and start display of loaded network
 				window.close();
-				NN_Display* display = NULL;
-				display = new NN_Display(net);
 				display->display_net();
+				}
+				else{
+					cout << "NO NET LOADED!\n";
+				}
 			}
 
 

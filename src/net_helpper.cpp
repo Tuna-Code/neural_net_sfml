@@ -4,6 +4,8 @@
 #include <iostream>
 #include <math.h>
 #include <string>
+#include <fstream>
+
 
 using namespace std;
 
@@ -11,6 +13,238 @@ using namespace std;
 Net_Helper::Net_Helper(NNet* net)
 {
 	this->net = net;
+}
+
+// Load a network from external file
+void Net_Helper::load_from_file(){
+
+	// Vars for holding initial net info
+
+	int layer_count;
+	int* nodes_per_layer = NULL;
+	string* layer_actv_func = NULL;
+
+
+
+
+	int input_tracker = 0;
+	int npl_tracker = 0;
+	int string_start = 1;
+	int string_end = 0;
+	int func_tracker = 0;
+
+	bool beginning_weights = true;
+	string temp_weights = "";
+
+	bool end_weights = false;
+
+	int weight_rows = 0;
+	int weight_cols = 0;
+	double** weights = NULL;
+
+	int layer_tracker = 0;
+
+	bool end_line = false;
+
+	int cur_row = 0;
+	int cur_col = 0;
+
+	// Vars for file path and current line
+	string file_path = "data/net_topology.data";
+	string cur_line = "";
+
+	// Try to open our file path
+	ifstream input_file(file_path);
+
+	// While file is open
+	if(input_file.is_open()){
+
+		// Grab current line and assign to cur_line
+		while(getline(input_file, cur_line)){
+			// If line contains # its a label, ignore
+			if(cur_line.find("#") != string::npos){
+				continue;
+			}
+
+			else{
+				// If it's our first input val
+				if(input_tracker == 0){
+					layer_count = stoi(cur_line);
+					//printf("%i\n", layer_count);
+					nodes_per_layer = new int[layer_count];
+					layer_actv_func = new string[layer_count];
+					input_tracker++;
+				}
+
+				else if(input_tracker == 1){
+					//cout << cur_line << endl;
+					for(string::size_type i = 0; i < cur_line.size(); i++){
+						if(cur_line[i] != '[' &&  cur_line[i] != ']' && cur_line[i] != ' ' && cur_line[i] != ','){
+							nodes_per_layer[npl_tracker] = (int) cur_line[i] - 48;
+							npl_tracker++;
+						}
+					}
+					input_tracker++;
+				}
+
+				else if(input_tracker == 2){
+					for(string::size_type i = 1; i < cur_line.size(); i++){
+						if(cur_line[i] == ',' || cur_line[i] == ']'){
+							string_end = i;
+							layer_actv_func[func_tracker] = cur_line.substr(string_start,string_end-string_start);
+							func_tracker++;
+							string_start = string_end + 1;
+						}
+					}
+					input_tracker++;
+				}
+
+				// Grab weights
+
+				else if (input_tracker == 3){
+
+					// If we're starting our weight matrix, start pos is 1 to avoid bracket, else its start of line
+					if(beginning_weights){
+						string_start = 1;
+						weight_rows = nodes_per_layer[layer_tracker];
+						weight_cols = nodes_per_layer[layer_tracker + 1];
+						weights = new double*[weight_rows];
+
+						for(int i = 0; i < weight_rows; i++){
+							weights[i] = new double[weight_cols];
+						}
+
+
+						//cout << cur_row << cur_col << endl;
+					}
+					else{
+						string_start = 0;
+					}
+
+
+
+					//(int num, int num_nodes, string actv_func, double** weights, int weight_rows, int weight_cols)
+
+					// Iterate through our current line by char
+					for(string::size_type i = string_start; i < cur_line.size(); i++){
+
+						 if(cur_line[i] == ' '){
+							continue;
+						 }
+
+						 // If we're at a comma, grab all proceeding text
+						 if(cur_line[i] == ','){
+							string_end = i;
+							temp_weights = temp_weights + cur_line.substr(string_start,string_end-string_start);
+							//printf("Weight: %s in pos [%i][%i]\n", temp_weights.c_str(), cur_row, cur_col);
+							weights[cur_row][cur_col] = stod(temp_weights);
+							temp_weights = "";
+							cur_col++;
+							//cout << cur_line.substr(string_start,string_end-string_start) << " ";
+							string_start = string_end + 1;
+						}
+						// If we're at a right bracket, we're at end of weight matrix. Set bool and continue
+						else if(cur_line[i] == ']'){
+							string_end = i;
+							//cout << cur_line.substr(string_start,string_end-string_start) << " ";
+							temp_weights = temp_weights + cur_line.substr(string_start,string_end-string_start);
+							//printf("Weight: %s in pos [%i][%i]\n", temp_weights.c_str(), cur_row, cur_col);
+							weights[cur_row][cur_col] = stod(temp_weights);
+							temp_weights = "";
+							string_start = string_end + 1;
+							beginning_weights = true;
+							end_line = true;
+							end_weights = true;
+
+						}
+						// If we're at the last character in the line grab weight value at end
+						else if(i == cur_line.size() - 1){
+							string_end = i +1;
+							temp_weights = temp_weights + cur_line.substr(string_start,string_end-string_start);
+							//printf("Weight: %s in pos [%i][%i]\n", temp_weights.c_str(), cur_row, cur_col);
+							weights[cur_row][cur_col] = stod(temp_weights);
+							temp_weights = "";
+							end_line = true;
+							beginning_weights = false;
+							cur_row++;
+							cur_col = 0;
+						}
+
+						if(end_line){
+							//cout << temp_weights;
+							temp_weights = "";
+
+							end_line = false;
+						}
+						// Finished grabbing our weight matrix
+						if(end_weights){
+							//for(string::size_type i = 0; i < temp_weights.size(); i++){
+							//	cout << temp_weights;
+							//}
+
+							for(int i = 0; i < nodes_per_layer[layer_tracker]; i++){
+								for(int j = 0; j<nodes_per_layer[layer_tracker+1]; j++){
+									printf("%f ",weights[i][j]);
+								}
+								cout << endl;
+							}
+							temp_weights = "";
+							cur_row = 0;
+							cur_col = 0;
+							end_weights = false;
+							cout << "\n------\n";
+							//input_tracker++;
+							layer_tracker++;
+						}
+
+
+
+
+
+
+						/*if(cur_line[i] == ']'){
+							input_tracker++;
+						}
+						else if(cur_line[i] == ','){
+							string_end = i;
+							cout << cur_line.substr(string_start,string_end-string_start) << " ";
+							string_start = string_end + 1;
+						}*/
+					}
+
+
+				}
+
+
+			}
+
+
+
+
+
+
+		}
+
+		// Finished. Close file
+		input_file.close();
+
+
+
+
+
+
+	}
+	// Report error if ubable to open file path
+	else{
+		cout << "Unable to open file!\n";
+	}
+
+
+
+
+
+
+
 }
 
 // Print topology of current network

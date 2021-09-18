@@ -20,8 +20,9 @@ NN_Display::NN_Display(Net_Helper* net){
 	this->net = net;
 
 	// Set initial resolution
-	win_x = 1920;
-	win_y = 1080;
+	win_x = 1440;
+	win_y = 900;
+
 	// Set max font size (TODO: Change this based on resolution)
 	max_font_size = 28;
 
@@ -46,18 +47,18 @@ NN_Display::NN_Display(Net_Helper* net){
 	disp_layer = -1;
 	cur_node_disp_layer = -1;
 	cur_node_disp_node = -1;
-
-	display_weight_text = false;
 }
 
 // Main function to display loaded network visually and dynamically
 void NN_Display::display_net(){
 start_display:
 
+	// Verify we have a net loaded into our pointer, otherwise return with error
 	if(net->net->input_layer == NULL){
 		cout << "No net loaded!";
 		return;
 	}
+
 // ---------------------------------------- Initial Display Setup ------------------------------------------
 	// Temp layer pointer used throughout app
 	Layer* l = NULL;
@@ -326,6 +327,12 @@ start_display:
 	double angle;
 	int num_weights;
 
+	// Allocate our bool array (entry [i][j] is for layer i, line j descending, last entry is display all nodes in layer, final entry is display all layers)
+	display_weight_text = NULL;
+	display_weight_text = new bool*[net->net->layer_count];
+
+
+
 	// Start on our input layer
 	l = net->net->input_layer;
 
@@ -338,10 +345,15 @@ start_display:
 
 		// Allocate our weight array of text objects
 		weight_text[x] = new sf::Text[num_weights];
+		// Allocate our bool array for displaying text data
+		display_weight_text[x] = new bool[num_weights + 1];
 
 		// Loop through each node in our current layer and compute text data connectiong to each node in next layer
 		for(int i = 0; i < l->num_nodes; i++){
 			for(int j = 0; j < l->next_layer->num_nodes; j++){
+
+				// Set display value for this weight to false initially
+				display_weight_text[x][line_counter] = false;
 
 				// For our current node pair, grab the weight lines beginning and end vertex
 				line_start = test_lines[x][line_counter][0];
@@ -382,10 +394,16 @@ start_display:
 		}
 		// Move to next layer
 		l = l->next_layer;
+		// Allocate final bool in layer for display all layer
+		display_weight_text[x][line_counter+1] = false;
 	}
+	// Allocate last layer (for display all)
+	display_weight_text[net->net->layer_count - 1] = new bool[1];
+	display_weight_text[net->net->layer_count - 1][0] = false;
 
 
-
+	Layer* weight_layer = NULL;
+	int cur_num_weights = 0;
 // ---------------------------------------- Open Main Loop --------------------------------------------------
 	// Window open loop
 	while (window.isOpen()){
@@ -407,6 +425,7 @@ start_display:
 					// Check if clicked on Layer title
 					if(layer_title[i].getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
 
+							// If currently displayed layer ISN'T the one we chose (to avoid redundant pointer update)
 							if(i != disp_layer){
 								// Set our display pointer to input layer and increment linked list until arrived on chosen layer
 								layer_ptr = net->net->input_layer;
@@ -420,9 +439,27 @@ start_display:
 								// If layer is output layer, mark flag for special rendering (no weights)
 								if(layer_ptr == net->net->last_layer){
 									output_layer = true;
+									weight_layer = net->net->input_layer;
+									for(int j = 0; j < net->net->layer_count -1; j++){
+										cur_num_weights = weight_layer->num_nodes*weight_layer->next_layer->num_nodes;
+										display_weight_text[j][cur_num_weights+1] = false;
+										weight_layer = weight_layer->next_layer;
+									}
 								}
 								else{
 									output_layer = false;
+									// Set bool for displaying all layer weights to true for this layer
+									weight_layer = net->net->input_layer;
+									for(int j = 0; j < net->net->layer_count -1; j++){
+										cur_num_weights = weight_layer->num_nodes*weight_layer->next_layer->num_nodes;
+										if(j == i){
+											display_weight_text[j][cur_num_weights+1] = true;
+										}
+										else{
+											display_weight_text[j][cur_num_weights+1] = false;
+										}
+										weight_layer = weight_layer->next_layer;
+									}
 								}
 								update_stats_window = true;
 								// If our window isn't open, open it. Otherwise updating the pointer above will change stats
@@ -477,7 +514,7 @@ start_display:
 
 				// If display weights is clicked
 				if(display_weights_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
-					display_weight_text = !display_weight_text;
+					display_weight_text[net->net->layer_count - 1][0] = !display_weight_text[net->net->layer_count - 1][0];
 				}
 
 				// If delete is clicked
@@ -545,11 +582,27 @@ start_display:
 	}
 
 	// Loop through our text array for displaying weight values
-	if(display_weight_text){
+	// If display all bool is set
+
+	if(display_weight_text[net->net->layer_count - 1][0]){
 		l = net->net->input_layer;
 		for(int i = 0; i < net->net->layer_count - 1; i++){
 			for(int j = 0; j < l->num_nodes*l->next_layer->num_nodes; j++){
 				window.draw(weight_text[i][j]);
+			}
+			l = l->next_layer;
+		}
+	}
+	// If display all isn't set, check for display layer or node
+	else{
+
+		// Check for each layers bool display value
+		l = net->net->input_layer;
+		for(int i = 0; i < net->net->layer_count - 1; i++){
+			if(display_weight_text[i][l->num_nodes*l->next_layer->num_nodes + 1]){
+				for(int j = 0; j < l->num_nodes*l->next_layer->num_nodes; j++){
+					window.draw(weight_text[i][j]);
+				}
 			}
 			l = l->next_layer;
 		}
@@ -596,7 +649,7 @@ void NN_Display::display_node_stats(){
 
 	// Create new window and set to right of main window
 	node_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "");
-	node_data_window.setPosition(sf::Vector2((int)layer_data_window.getPosition().x, (int)layer_data_window.getPosition().y + (int)layer_data_window.getSize().y + 10));
+	node_data_window.setPosition(sf::Vector2((int)layer_data_window.getPosition().x, (int)layer_data_window.getPosition().y + (int)layer_data_window.getSize().y + spacer*3));
 
 	// ---------------------------------------- Main Open Loop --------------------------------------------------
 	int layer_num = 0;
@@ -667,12 +720,21 @@ void NN_Display::display_layer_stats(){
 	// Set pixel spacer
 	int spacer = 20;
 
+	// Background color for Buttons (gray-ish);
+	sf::Color bg_button(128, 128, 128);
+
 	// Text objects for displaying layer info
 	sf::Text title;
 	sf::Text layer_stats;
 	sf::Text weight_title;
 	sf::Text weight_sub;
 	sf::Text weight_stats;
+
+	// Text objects for buttons
+	sf::Text display_weights_text;
+
+	// Rect shape objects for buttons
+	sf::RectangleShape display_weights_rect;
 
 	// Font object used in window. Fail if unable to load
 	sf::Font title_font;
@@ -686,6 +748,18 @@ void NN_Display::display_layer_stats(){
 	layer_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "");
 	layer_data_window.setPosition(sf::Vector2((int)window.getPosition().x + (int)window.getSize().x + 10, (int)window.getPosition().y));
 
+	// Set attributes for display weights button
+	display_weights_text.setFont(title_font);
+	display_weights_text.setString("Disp. Weights");
+	display_weights_text.setCharacterSize(max_font_size * .5);
+	display_weights_text.setFillColor(sf::Color::Black);
+	display_weights_text.setPosition(spacer/2, y - display_weights_text.getGlobalBounds().height - spacer);
+
+	display_weights_rect.setPosition(display_weights_text.getPosition().x, display_weights_text.getPosition().y);
+	display_weights_rect.setSize(sf::Vector2f(display_weights_text.getGlobalBounds().width + spacer, display_weights_text.getGlobalBounds().height*2));
+	display_weights_rect.setFillColor(bg_button);
+	display_weights_rect.setOutlineColor(sf::Color::White);
+	display_weights_rect.setOutlineThickness(1);
 
 	// Set text attrubutes for items that don't need dynamically updated
 	title.setFont(title_font);
@@ -790,6 +864,16 @@ void NN_Display::display_layer_stats(){
 				layer_data_window.close();
 				stats_window_open = false;
 			}
+			// If clicked, check if clicked on objects
+			if(layer_data_event.type == sf::Event::MouseButtonPressed){
+
+				// Check if our display weights button was clicked
+				if(display_weights_rect.getGlobalBounds().contains(layer_data_window.mapPixelToCoords(sf::Mouse::getPosition(layer_data_window)))){
+					if(!output_layer){
+						display_weight_text[layer_ptr->num][layer_ptr->num_nodes*layer_ptr->next_layer->num_nodes + 1] = !display_weight_text[layer_ptr->num][layer_ptr->num_nodes*layer_ptr->next_layer->num_nodes + 1];
+					}
+				}
+			}
 		}
 
 // ------- Display all of our generated items ---------
@@ -806,6 +890,11 @@ void NN_Display::display_layer_stats(){
 		if(!output_layer){
 			layer_data_window.draw(weight_sub);
 			layer_data_window.draw(weight_stats);
+
+			// Display our button rectangles
+			layer_data_window.draw(display_weights_rect);
+			// Display our button text
+			layer_data_window.draw(display_weights_text);
 		}
 
 		// Dislay window with drawn objects

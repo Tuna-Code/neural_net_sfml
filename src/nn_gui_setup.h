@@ -4,6 +4,7 @@
 #include "nnet.h"
 #include <iostream>
 #include <string>
+#include "nn_display.h"
 
 #pragma once
 
@@ -22,6 +23,7 @@ class NN_gui_setup{
 		sf::RenderWindow window;
 		sf::Event event;
 		float screenScalingFactor;
+		NN_Display* display;
 
 
 
