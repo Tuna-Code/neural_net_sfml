@@ -49,9 +49,13 @@ void NNet::add_layer(int num, int num_nodes, string actv_func, double** weights,
     // Allocate our input and output arrays with given sizes
     double* input = new double[num_nodes];
     double* output = new double[num_nodes];
-
+    for(int i = 0; i < num_nodes; i++){
+        input[i] = 0;
+        output[i] = 0;
+    }
     // Create new layer object and assign to pointer
     new_layer = new Layer(num, num_nodes, actv_func, input, output, weights, weight_rows, weight_cols);
+    //new_layer->proc_inputs();
 
     // If input layer is Null then this is our first layer. Add it to the linked list
     if((input_layer == NULL)){

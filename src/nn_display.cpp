@@ -1,17 +1,11 @@
-#include "Platform/Platform.hpp"
-#include "layer.h"
-#include "net_helper.h"
-#include "nnet.h"
-#include <iostream>
-#include <string>
-#include "nn_display.h"
-#include <thread>
-#include <math.h>
+#include "utils.h"
 
 #define PI 3.14159265
 
 
 using namespace std;
+
+
 
 // NN_Display constructor (takes Net_Helper previously loaded w/network)
 NN_Display::NN_Display(Net_Helper* net){
@@ -22,12 +16,13 @@ NN_Display::NN_Display(Net_Helper* net){
 	// Set initial resolution
 	win_x = 1440;
 	win_y = 900;
-
+	//win_x = 1920;
+	//win_y = 1080;
 	// Set max font size (TODO: Change this based on resolution)
 	max_font_size = 28;
 
 	// Grab scaling factors for display (required here on Winows)
-	screenScalingFactor = platform.getScreenScalingFactor(window.getSystemHandle());
+	screenScalingFactor = platform.getScreenScalingFactor(side_menu_window.getSystemHandle());
 
 	// Set initial value of open stats window to false, so we know it needs to be created
 	stats_window_open = false;
@@ -47,23 +42,260 @@ NN_Display::NN_Display(Net_Helper* net){
 	disp_layer = -1;
 	cur_node_disp_layer = -1;
 	cur_node_disp_node = -1;
+
+	label_spacer = 10;
+	button_spacer = 20;
+	spacer = 10;
+
+	close_net_disp = false;
+	close_layer_disp = false;
+	close_node_disp = false;
+
+
 }
+
+// Function for minimal display (for large nets)
+void NN_Display::display_side_menu(){
+
+	// Set initial window size
+	int win_x = 300;
+	bool disp_controls = false;
+	// Vector containing our button objects
+	vector<Button> option_button_list;
+	vector<Button> control_button_list;
+	// Vector containing our button strings
+	vector<string> option_string_list;
+	vector<string> control_string_list;
+
+	// GUI Spacers
+
+
+	// Window label text
+	sf::Text title;
+	sf::Text net_control;
+
+	// Load font
+	sf::Font title_font;
+	if (!title_font.loadFromFile("fonts/akira.otf"))
+	{
+		cout << "FONT NOT FOUND!!\n";
+		std::exit(EXIT_FAILURE);
+	}
+
+	// Set font attributes for main heading
+	title.setFont(title_font);
+	title.setString("Options...");
+	title.setCharacterSize(max_font_size * 0.6);
+	title.setFillColor(sf::Color::White);
+	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
+	title.setPosition(label_spacer, label_spacer);
+
+	net_control.setFont(title_font);
+	net_control.setString("Net Controls...");
+	net_control.setCharacterSize(max_font_size * 0.6);
+	net_control.setFillColor(sf::Color::White);
+	net_control.setStyle(sf::Text::Bold | sf::Text::Underlined);
+
+
+	// Add our button texts
+	option_string_list.push_back("Select + Load Net");
+	option_string_list.push_back("Clear Memory");
+	option_string_list.push_back("Main Menu");
+
+	control_string_list.push_back("Load Inputs");
+	control_string_list.push_back("Load Training Data");
+	control_string_list.push_back("-> Prop.");
+	control_string_list.push_back("<- Prop.");
+	control_string_list.push_back("Reset to Initial");
+	control_string_list.push_back("Display Weights (All)");
+
+	// Set initial Y position for button
+	int cur_y = title.getPosition().y + title.getGlobalBounds().height + button_spacer;
+	// Temp button pointer
+	Button* temp = NULL;
+	// Our current max_y value (for window size)
+	int max_y = 0;
+
+	// Loop through each string we set and generate button struct + increment Y position
+	for(int i = 0; i < option_string_list.size(); i++){
+		temp = new Button(option_string_list[i],title.getPosition().x, cur_y);
+		cur_y = temp->rect.getPosition().y + temp->rect.getGlobalBounds().height + button_spacer;
+		option_button_list.push_back(*temp);
+		max_y = temp->rect.getPosition().y + temp->rect.getGlobalBounds().height + button_spacer;
+
+	}
+	net_control.setPosition(label_spacer, max_y);
+	cur_y = net_control.getPosition().y + net_control.getGlobalBounds().height + button_spacer;
+
+	for(int i = 0; i < control_string_list.size(); i++){
+		temp = new Button(control_string_list[i],title.getPosition().x, cur_y);
+		cur_y = temp->rect.getPosition().y + temp->rect.getGlobalBounds().height + button_spacer;
+		control_button_list.push_back(*temp);
+		max_y = temp->rect.getPosition().y + temp->rect.getGlobalBounds().height + button_spacer;
+	}
+
+
+
+	// Create our window object + set position
+	side_menu_window.create(sf::VideoMode(win_x * screenScalingFactor, max_y * screenScalingFactor), "Neural Netowrk GUI Interface");
+	side_menu_window.setPosition(sf::Vector2(10, 10));
+	platform.setIcon(side_menu_window.getSystemHandle());
+
+// ---------------------------------------- Main window loop------------------------------------------
+	// If user loaded network on homescreen, spwan thread and display
+	if(net->net->input_layer != NULL){
+			t0 = new std::thread(display_net, this);
+	}
+	// Main window open loop
+	while (side_menu_window.isOpen()){
+		// Get current event
+		while (side_menu_window.pollEvent(side_menu_event)){
+
+			// If user closes
+			if (side_menu_event.type == sf::Event::Closed){
+				side_menu_window.close();
+				return;
+			}
+			// If user hits presses a key
+			else if(side_menu_event.type == sf::Event::KeyPressed){
+				// If escape is pressed
+				if(side_menu_event.key.code == sf::Keyboard::Escape){
+					side_menu_window.close();
+					return;
+				}
+			}
+			// If user clicks
+			else if(side_menu_event.type == sf::Event::MouseButtonPressed){
+				// Loop through out buttons and see which was clocked
+				for(int i = 0; i < option_button_list.size(); i++){
+					if(option_button_list[i].rect.getGlobalBounds().contains(side_menu_window.mapPixelToCoords(sf::Mouse::getPosition(side_menu_window)))){
+						if(i == 0){
+							// If button 0 was clicked (load new network)
+							// Get path to network to load
+							string new_net = display_file_select_load(side_menu_window.getPosition().x + side_menu_window.getSize().x + spacer, side_menu_window.getPosition().y  + spacer, ".top");
+							// If no network is loaded yet
+							if(net->net->input_layer == NULL){
+								// Verify file path was returned and load net
+								if(new_net != ""){
+									net->load_from_file(new_net);
+
+									// Spawn new thread and display
+									t0 = new std::thread(display_net, this);
+								}
+							}
+							// If network is already loaded
+							else{
+
+								// If main window is already open, close it and rejoin thread
+								if(net_disp_window.isOpen()){
+									net_disp_window.close();
+									t0->join();
+								}
+								// If side layer data panel is open, close it and update bools and rejoin thread
+								if(layer_data_window.isOpen()){
+									layer_data_window.close();
+									stats_window_open = false;
+									update_stats_window = true;
+									t1->join();
+								}
+								// If side node data panel is open, close it and update bools and rejoin thread
+								if(node_data_window.isOpen()){
+									node_data_window.close();
+									node_window_open = false;
+									update_node_window = true;
+									t2->join();
+								}
+
+								// Clear out network and release memory
+								net->delete_network();
+								// Load newly chosen network
+								net->load_from_file(new_net);
+								// Spawn new thread and display net
+								t0 = new std::thread(display_net, this);
+							}
+						}
+					}
+				}
+			}
+		}
+
+// -------------------------------------- Main Display Sequence --------------------------------------
+
+		// Clear window
+		side_menu_window.clear();
+		// Draw our title text
+		side_menu_window.draw(title);
+		// Loop through button vector and draw to screen
+		for(int i = 0; i < option_button_list.size(); i++){
+			side_menu_window.draw(option_button_list[i].rect);
+			side_menu_window.draw(option_button_list[i].text);
+		}
+		if(net->net->input_layer != NULL){
+			side_menu_window.draw(net_control);
+			for(int i = 0; i < control_button_list.size(); i++){
+				side_menu_window.draw(control_button_list[i].rect);
+				side_menu_window.draw(control_button_list[i].text);
+			}
+		}
+
+
+		// Display buffer
+		side_menu_window.display();
+	}
+	return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Main function to display loaded network visually and dynamically
 void NN_Display::display_net(){
-start_display:
-
+	disp_layer = -1;
 	// Verify we have a net loaded into our pointer, otherwise return with error
 	if(net->net->input_layer == NULL){
 		cout << "No net loaded!";
 		return;
 	}
 
+
+
+
 // ---------------------------------------- Initial Display Setup ------------------------------------------
 	// Temp layer pointer used throughout app
 	Layer* l = NULL;
 	// How many pixels for spacers
-	int spacer = 10;
+
 	// Radius and thickness for each node displayed
 	int node_rad = 40;
 	int node_thickness = 5;
@@ -180,7 +412,7 @@ start_display:
 
 	// Set attributes for delete button
 	delete_text.setFont(title_font);
-	delete_text.setString("Clear Net");
+	delete_text.setString("Clear Memory");
 	delete_text.setCharacterSize(max_font_size * .5);
 	delete_text.setFillColor(sf::Color::Black);
 	delete_text.setPosition(options.getPosition().x,win_y - delete_text.getGlobalBounds().height*2 - spacer);
@@ -192,9 +424,10 @@ start_display:
 	delete_rect.setOutlineThickness(1);
 
 	// Create window and set position to far left and set icon
-	window.create(sf::VideoMode(win_x * screenScalingFactor, win_y * screenScalingFactor), "Neural Netowrk GUI Interface");
-	window.setPosition(sf::Vector2(10, 10));
-	platform.setIcon(window.getSystemHandle());
+	net_disp_window.create(sf::VideoMode(win_x * screenScalingFactor, win_y * screenScalingFactor), "Neural Netowrk GUI Interface");
+	net_disp_window.setPosition(sf::Vector2((int) side_menu_window.getPosition().x + (int) side_menu_window.getSize().x + spacer, side_menu_window.getPosition().y));
+
+	platform.setIcon(net_disp_window.getSystemHandle());
 
 // ---------------------------------------- Generate Layer Titles and Positions ----------------------------
 
@@ -204,7 +437,8 @@ start_display:
 	layer_title[0].setCharacterSize(layer_font_size);
 	layer_title[0].setFillColor(sf::Color::White);
 	layer_title[0].setStyle(sf::Text::Bold | sf::Text::Underlined);
-	layer_title[0].setPosition((options.getPosition().x + options.getGlobalBounds().width + spacer*2) + layer_title[0].getGlobalBounds().width/2, (title.getPosition().y + title.getGlobalBounds().height  + spacer*2));
+	//layer_title[0].setPosition((options.getPosition().x + options.getGlobalBounds().width + spacer*2) + layer_title[0].getGlobalBounds().width/2, (title.getPosition().y + title.getGlobalBounds().height  + spacer*2));
+	layer_title[0].setPosition((win_x/layer_count)/2 - layer_title[0].getGlobalBounds().width/2, (title.getPosition().y + title.getGlobalBounds().height  + spacer*2));
 
 	// For each remaining layer (1 to end) generate it's title and set position based on previous layer title
 	for(int i = 1; i < layer_count; i++){
@@ -213,7 +447,9 @@ start_display:
 		layer_title[i].setCharacterSize(layer_font_size);
 		layer_title[i].setFillColor(sf::Color::White);
 		layer_title[i].setStyle(sf::Text::Bold | sf::Text::Underlined);
-		layer_title[i].setPosition(layer_title[i-1].getPosition().x + ((win_x - (options.getPosition().x + options.getGlobalBounds().width + spacer*2)) / layer_count) + spacer, (title.getPosition().y + title.getGlobalBounds().height  + spacer*2));
+		//layer_title[i].setPosition(layer_title[i-1].getPosition().x + ((win_x - (options.getPosition().x + options.getGlobalBounds().width + spacer*2)) / layer_count) + spacer, (title.getPosition().y + title.getGlobalBounds().height  + spacer*2));
+		layer_title[i].setPosition(layer_title[i-1].getPosition().x + (win_x  / layer_count), (title.getPosition().y + title.getGlobalBounds().height  + spacer*2));
+
 	}
 
 // ---------------------------------------- Generate and assign node positions -----------------------------
@@ -406,24 +642,46 @@ start_display:
 	int cur_num_weights = 0;
 // ---------------------------------------- Open Main Loop --------------------------------------------------
 	// Window open loop
-	while (window.isOpen()){
+	while (net_disp_window.isOpen()){
 
+		if(close_net_disp){
+			cout << "\nclosing net disp...\n";
+			close_net_disp = false;
+			net_disp_window.close();
+			//net->delete_network();
+
+
+			disp_layer = -1;
+			return;
+		}
 		// Grab event
-		while (window.pollEvent(event)){
+		while (net_disp_window.pollEvent(net_disp_event)){
 
 			// If closing
-			if (event.type == sf::Event::Closed || event.key.code == sf::Keyboard::Escape)
+			if (net_disp_event.type == sf::Event::Closed)
 			{
-				window.close();
+				net_disp_window.close();
+				close_net_disp = false;
+				disp_layer = -1;
+				return;
+			}
+
+			else if(net_disp_event.type == sf::Event::KeyPressed){
+				if(net_disp_event.key.code == sf::Keyboard::Escape){
+					net_disp_window.close();
+					close_net_disp = false;
+					disp_layer = -1;
+					return;
+				}
 			}
 			// If clicked, check if clicked on objects
-			if(event.type == sf::Event::MouseButtonPressed){
+			else if(net_disp_event.type == sf::Event::MouseButtonPressed){
 
 				// Iterate through to see if layer had a clicked object
 				l = net->net->input_layer;
 				for(int i = 0; i < layer_count; i++){
 					// Check if clicked on Layer title
-					if(layer_title[i].getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+					if(layer_title[i].getGlobalBounds().contains(net_disp_window.mapPixelToCoords(sf::Mouse::getPosition(net_disp_window)))){
 
 							// If currently displayed layer ISN'T the one we chose (to avoid redundant pointer update)
 							if(i != disp_layer){
@@ -473,7 +731,7 @@ start_display:
 					}
 					// Iterate through layer node shapes and check if clicked on them.
 					for(int j=0; j < l->num_nodes; j++){
-						if(nodes[i][j].getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+						if(nodes[i][j].getGlobalBounds().contains(net_disp_window.mapPixelToCoords(sf::Mouse::getPosition(net_disp_window)))){
 
 							if((cur_node_disp_layer != i) || (cur_node_disp_node != j || !node_window_open)){
 								// Update our node layer/position pointers:D
@@ -498,7 +756,7 @@ start_display:
 
 				// Check if clicked on control buttons
 				// If forward prop is clicked
-				if(forward_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+				if(forward_rect.getGlobalBounds().contains(net_disp_window.mapPixelToCoords(sf::Mouse::getPosition(net_disp_window)))){
 					net->net->forward_prop();
 					update_stats_window = true;
 					update_node_window = true;
@@ -506,22 +764,23 @@ start_display:
 				}
 
 				// If reset is clicked
-				if(reset_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+				if(reset_rect.getGlobalBounds().contains(net_disp_window.mapPixelToCoords(sf::Mouse::getPosition(net_disp_window)))){
 					net->reset_network();
 					update_stats_window = true;
 					update_node_window =true;
 				}
 
 				// If display weights is clicked
-				if(display_weights_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+				if(display_weights_rect.getGlobalBounds().contains(net_disp_window.mapPixelToCoords(sf::Mouse::getPosition(net_disp_window)))){
 					display_weight_text[net->net->layer_count - 1][0] = !display_weight_text[net->net->layer_count - 1][0];
 				}
 
 				// If delete is clicked
-				if(delete_rect.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+				if(delete_rect.getGlobalBounds().contains(net_disp_window.mapPixelToCoords(sf::Mouse::getPosition(net_disp_window)))){
 					net->delete_network();
-					window.close();
-					goto start_display;
+					net_disp_window.close();
+					return;
+					//goto start_display;
 
 					//display_net();
 
@@ -534,11 +793,11 @@ start_display:
 // ------- Display all of our generated items ---------
 
 	// Clear current frame
-	window.clear();
+	net_disp_window.clear();
 
 	// Loop through our layers and draw their headings
 	for(int i = 0; i < layer_count; i++){
-		window.draw(layer_title[i]);
+		net_disp_window.draw(layer_title[i]);
 	}
 
 	// Loop through each layer and draw nodes in layer
@@ -546,29 +805,29 @@ start_display:
 	for(int i = 0; i < layer_count; i++){
 		// Draw node j from layer i
 		for(int j=0; j < l->num_nodes; j++){
-			window.draw(nodes[i][j]);
+			net_disp_window.draw(nodes[i][j]);
 		}
 		l = l->next_layer;
 	}
 
 	// Draw our title text(s)
-	window.draw(title);
-	window.draw(options);
+	net_disp_window.draw(title);
+	//net_disp_window.draw(options);
 
 	// Draw our button rectangles (done before text)
-	window.draw(forward_rect);
-	window.draw(reset_rect);
-	window.draw(display_weights_rect);
-	window.draw(delete_rect);
+	//net_disp_window.draw(forward_rect);
+	//net_disp_window.draw(reset_rect);
+	//net_disp_window.draw(display_weights_rect);
+	//net_disp_window.draw(delete_rect);
 
 	// Draw our button text
-	window.draw(forward_text);
-	window.draw(reset_text);
-	window.draw(display_weights_text);
-	window.draw(delete_text);
+	//net_disp_window.draw(forward_text);
+	//net_disp_window.draw(reset_text);
+	//net_disp_window.draw(display_weights_text);
+	//net_disp_window.draw(delete_text);
 
 	// Draw line dividing options and display sections
-	window.draw(options_line, 2, sf::Lines);
+	//net_disp_window.draw(options_line, 2, sf::Lines);
 
 	// Loop through each layer (except output) and draw our connecting lines from 3d array
 	l = net->net->input_layer;
@@ -576,7 +835,7 @@ start_display:
 		// Each layer contains nodes*next_nodes lines to connect them
 		for(int j = 0; j < l->num_nodes*l->next_layer->num_nodes; j++){
 			// Draw line j from layer i
-			window.draw(test_lines[i][j], 2, sf::Lines);
+			net_disp_window.draw(test_lines[i][j], 2, sf::Lines);
 		}
 		l = l->next_layer;
 	}
@@ -588,7 +847,7 @@ start_display:
 		l = net->net->input_layer;
 		for(int i = 0; i < net->net->layer_count - 1; i++){
 			for(int j = 0; j < l->num_nodes*l->next_layer->num_nodes; j++){
-				window.draw(weight_text[i][j]);
+				net_disp_window.draw(weight_text[i][j]);
 			}
 			l = l->next_layer;
 		}
@@ -601,7 +860,7 @@ start_display:
 		for(int i = 0; i < net->net->layer_count - 1; i++){
 			if(display_weight_text[i][l->num_nodes*l->next_layer->num_nodes + 1]){
 				for(int j = 0; j < l->num_nodes*l->next_layer->num_nodes; j++){
-					window.draw(weight_text[i][j]);
+					net_disp_window.draw(weight_text[i][j]);
 				}
 			}
 			l = l->next_layer;
@@ -609,20 +868,22 @@ start_display:
 	}
 
 	// Display our window
-	window.display();
+	net_disp_window.display();
 	}
+	return;
 }
 
 
 
 // Function to open window displaying stats of selected node. Called in new thread
 void NN_Display::display_node_stats(){
-
+	cur_node_disp_layer = -1;
+	cur_node_disp_node = -1;
 
 	double x = 500;
 	double y = 300;
 
-	int spacer = 10;
+
 
 	sf::Text title;
 	sf::Text node_data;
@@ -655,6 +916,15 @@ void NN_Display::display_node_stats(){
 	int layer_num = 0;
 	int node_num = 0;
 	while (node_data_window.isOpen()){
+		if(close_node_disp){
+			node_data_window.close();
+			close_node_disp = false;
+			node_window_open = false;
+			update_node_window = true;
+			cur_node_disp_layer = -1;
+			cur_node_disp_node = -1;
+			return;
+		}
 
 		// If a data update occurred, recompute our displayed info
 		if(update_node_window){
@@ -690,12 +960,21 @@ void NN_Display::display_node_stats(){
 		while (node_data_window.pollEvent(node_data_event)){
 
 			// If closing, close and update object that window is closed
-			if (node_data_event.type == sf::Event::Closed || node_data_event.key.code == sf::Keyboard::Escape)
+			if (node_data_event.type == sf::Event::Closed)
 			{
 				node_data_window.close();
 				node_window_open = false;
+				return;
 
 			}
+			else if(node_data_event.type == sf::Event::KeyPressed){
+				if(node_data_event.key.code == sf::Keyboard::Escape){
+					node_data_window.close();
+					node_window_open = false;
+					return;
+				 }
+			}
+
 		}
 
 
@@ -705,12 +984,15 @@ void NN_Display::display_node_stats(){
 		node_data_window.draw(node_data);
 		node_data_window.display();
 	}
+	return;
 
 
 }
 // Function to open window displaying stats of selected layer (from layer_ptr). Called in new thread
 void NN_Display::display_layer_stats(){
-
+	cur_node_disp_layer = -1;
+	cur_node_disp_node = -1;
+	disp_layer = -1;
 // ---------------------------------------- Initial Setuo ---------------------------------------------------
 
 	// Set initial resolution
@@ -746,7 +1028,7 @@ void NN_Display::display_layer_stats(){
 
 	// Create new window and set to right of main window
 	layer_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "");
-	layer_data_window.setPosition(sf::Vector2((int)window.getPosition().x + (int)window.getSize().x + 10, (int)window.getPosition().y));
+	layer_data_window.setPosition(sf::Vector2((int)net_disp_window.getPosition().x + (int)net_disp_window.getSize().x + 10, (int)net_disp_window.getPosition().y));
 
 	// Set attributes for display weights button
 	display_weights_text.setFont(title_font);
@@ -792,7 +1074,20 @@ void NN_Display::display_layer_stats(){
 
 // ---------------------------------------- Main Open Loop --------------------------------------------------
 	while (layer_data_window.isOpen()){
+		if(close_layer_disp){
+
+			close_layer_disp = false;
+			stats_window_open = false;
+			update_stats_window = true;
+			cur_node_disp_layer = -1;
+			cur_node_disp_node = -1;
+			disp_layer = -1;
+			layer_data_window.close();
+			return;
+		}
+
 		if(update_stats_window){
+
 			//cout << "UPDATE DETECTED!\n";
 			// Generate our titles and stats from updated pointer
 			title.setString("Layer " + to_string(layer_ptr->num) + " Stats");
@@ -859,13 +1154,26 @@ void NN_Display::display_layer_stats(){
 		while (layer_data_window.pollEvent(layer_data_event)){
 
 			// If closing, close and update object that window is closed
-			if (layer_data_event.type == sf::Event::Closed || layer_data_event.key.code == sf::Keyboard::Escape)
+			if (layer_data_event.type == sf::Event::Closed)
 			{
 				layer_data_window.close();
 				stats_window_open = false;
+				return;
 			}
+
+			else if (layer_data_event.type == sf::Event::KeyPressed)
+			{
+				if(layer_data_event.key.code == sf::Keyboard::Escape){
+					layer_data_window.close();
+					stats_window_open = false;
+					return;
+				}
+
+			}
+
+
 			// If clicked, check if clicked on objects
-			if(layer_data_event.type == sf::Event::MouseButtonPressed){
+			else if(layer_data_event.type == sf::Event::MouseButtonPressed){
 
 				// Check if our display weights button was clicked
 				if(display_weights_rect.getGlobalBounds().contains(layer_data_window.mapPixelToCoords(sf::Mouse::getPosition(layer_data_window)))){
@@ -900,5 +1208,6 @@ void NN_Display::display_layer_stats(){
 		// Dislay window with drawn objects
 		layer_data_window.display();
 	}
+	return;
 
 }

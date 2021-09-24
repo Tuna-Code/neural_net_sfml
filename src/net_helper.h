@@ -1,12 +1,13 @@
-#include <iostream>
-#include <string>
-#include <math.h>
 #include "layer.h"
 #include "nnet.h"
+#include <iostream>
+#include <math.h>
+#include <string>
 
 #pragma once
 
-class Net_Helper{
+class Net_Helper
+{
 
     public:
         NNet* net;
@@ -18,7 +19,5 @@ class Net_Helper{
         void setup_network();
         void reset_network();
         void delete_network();
-        void load_from_file();
-
-
+        void load_from_file(string file_path);
 };

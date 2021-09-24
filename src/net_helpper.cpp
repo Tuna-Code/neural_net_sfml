@@ -5,9 +5,14 @@
 #include <math.h>
 #include <string>
 #include <fstream>
+#include <random>
+
+
+
 
 
 using namespace std;
+//using namespace boost::filesystem;
 
 // Net constructor
 Net_Helper::Net_Helper(NNet* net)
@@ -16,7 +21,14 @@ Net_Helper::Net_Helper(NNet* net)
 }
 
 // Load a network from external file
-void Net_Helper::load_from_file(){
+void Net_Helper::load_from_file(string file_path){
+	if(net->input_layer != NULL){
+		delete_network();
+	}
+	// Randomizer engine
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine generator(seed);
+
 
 	// Vars for holding initial net info
 
@@ -24,11 +36,8 @@ void Net_Helper::load_from_file(){
 	int* nodes_per_layer = NULL;
 	string* layer_actv_func = NULL;
 
-
-
-
 	int input_tracker = 0;
-	int npl_tracker = 0;
+	//int npl_tracker = 0;
 	int string_start = 1;
 	int string_end = 0;
 	int func_tracker = 0;
@@ -44,50 +53,131 @@ void Net_Helper::load_from_file(){
 
 	int layer_tracker = 0;
 
-	bool end_line = false;
 
 	int cur_row = 0;
 	int cur_col = 0;
 
+	bool random_node_count = false;
+	int layer_node_range_min = 0;
+	int layer_node_range_max = 0;
+
+	bool random_weights= false;
+	double rand_weights_min = 0;
+	double rand_weights_max = 0;
+
+
+
 	// Vars for file path and current line
-	string file_path = "data/net_topology.data";
+	//string file_path2 = "data/testnet_random.top";
+	//string file_path = "data/net_topology.data";
 	string cur_line = "";
 
 	// Try to open our file path
-	ifstream input_file(file_path);
+	std::ifstream input_file(file_path);
 
 	// While file is open
 	if(input_file.is_open()){
 
 		// Grab current line and assign to cur_line
 		while(getline(input_file, cur_line)){
-			// If line contains # its a label, ignore
-			if(cur_line.find("#") != string::npos){
+			// If line contains # its a label or is blank, ignore
+			if(cur_line.find("#") != string::npos || cur_line.size() == 0){
 				continue;
 			}
 
 			else{
-				// If it's our first input val
+				// If it's our 1st input val (layer count)
 				if(input_tracker == 0){
 					layer_count = stoi(cur_line);
-					//printf("%i\n", layer_count);
 					nodes_per_layer = new int[layer_count];
 					layer_actv_func = new string[layer_count];
 					input_tracker++;
+
 				}
 
+				// If it's our 2nd input val (random inner layer node count true/false)
 				else if(input_tracker == 1){
-					//cout << cur_line << endl;
-					for(string::size_type i = 0; i < cur_line.size(); i++){
-						if(cur_line[i] != '[' &&  cur_line[i] != ']' && cur_line[i] != ' ' && cur_line[i] != ','){
-							nodes_per_layer[npl_tracker] = (int) cur_line[i] - 48;
-							npl_tracker++;
-						}
+
+					// Grab bool value if random node nums are desired
+					if(cur_line == "0"){
+						random_node_count = false;
+					}
+					else if(cur_line == "1"){
+						random_node_count = true;
 					}
 					input_tracker++;
 				}
 
+				// If it's our 3nd input val (random layer node count min)
 				else if(input_tracker == 2){
+					layer_node_range_min = stoi(cur_line);
+					input_tracker++;
+
+				}
+
+				// If it's our 3nd input val (random layer node count max)
+				else if(input_tracker == 3){
+					layer_node_range_max = stoi(cur_line);
+					input_tracker++;
+				}
+
+				// If it's our 4th input val (nodes per layer array OR input/output layer node count w/random hidden layer nodes)
+				else if(input_tracker == 4){
+							// If we want random node counts on our hidden layers
+							if(random_node_count){
+								// Have we found first of 2 digits
+								bool first_found = false;
+
+								// Iterate through line and ignore all non ints
+								for(string::size_type i = 0; i < cur_line.size(); i++){
+									if(cur_line[i] != '[' && cur_line[i] != ']' && cur_line[i] != ' ' && cur_line[i] != ','){
+
+										// If we havent found our first int yet, put it at start of our array
+										if(!first_found){
+											nodes_per_layer[0] =  (int) cur_line[i] - 48;
+											first_found = true;
+										}
+										// If this is the output value, put it at end of array
+										else if(first_found){
+											nodes_per_layer[layer_count - 1] =  (int) cur_line[i] - 48;
+										}
+									}
+								}
+								// Loop through middle of array and assign random values from our range
+								for(int i = 1; i < layer_count - 1; i++){
+									std::uniform_int_distribution<int> range(layer_node_range_min,layer_node_range_max);
+									nodes_per_layer[i] = range(generator);
+								}
+							}
+
+
+							input_tracker++;
+				}
+
+				// If it's our 5th input val (nodes per layer if manually assigned)
+				else if(input_tracker == 5){
+					int cur_pos = 0;
+					// If we want manually assigned layer node counts
+					if(!random_node_count){
+
+						// Iterate through line and ignore all non ints
+						for(string::size_type i = 0; i < cur_line.size(); i++){
+							if(cur_line[i] != '[' && cur_line[i] != ']' && cur_line[i] != ' ' && cur_line[i] != ','){
+								nodes_per_layer[cur_pos] = (int) cur_line[i] - 48;
+								cur_pos++;
+							}
+
+						}
+
+					}
+					input_tracker++;
+					//for(int i=0; i < layer_count; i++){
+					//	cout << nodes_per_layer[i];
+					//}
+				}
+
+				// If it's our 6th input val (activation functions for each layer)
+				else if(input_tracker == 6){
 					for(string::size_type i = 1; i < cur_line.size(); i++){
 						if(cur_line[i] == ',' || cur_line[i] == ']'){
 							string_end = i;
@@ -97,15 +187,88 @@ void Net_Helper::load_from_file(){
 						}
 					}
 					input_tracker++;
+					//for(int i=0; i < layer_count - 1; i++){
+					//	cout << endl << layer_actv_func[i] << " ";
+					//}
 				}
 
-				// Grab weights
+				//If it's our 7th input val (bool value for assigned weights or random range)
+\
+				else if (input_tracker == 7){
+					// Grab bool value if random node nums are desired
+					if(cur_line == "0"){
+						random_weights = false;
+					}
+					else if(cur_line == "1"){
+						random_weights = true;
+					}
 
-				else if (input_tracker == 3){
+					input_tracker++;
+				}
 
-					// If we're starting our weight matrix, start pos is 1 to avoid bracket, else its start of line
+				// If it's our 8th input val (random weight range min)
+				else if (input_tracker == 8){
+					rand_weights_min = stod(cur_line);
+					input_tracker++;
+				}
+
+				// If it's our 9th input val (random weight range max)
+				else if (input_tracker == 9){
+					rand_weights_max = stod(cur_line);
+
+
+					// If we chose random weights, generate and assign. Otherwise move onto next section
+					if(random_weights){
+
+
+						cout << endl << layer_count << endl;
+
+
+						for(int l = 0; l < layer_count - 1; l++){
+
+							// Allocate weight matrix based on layer nodes
+							weight_rows = nodes_per_layer[l];
+							weight_cols = nodes_per_layer[l + 1];
+							weights = new double*[weight_rows];
+
+							for(int i = 0; i < weight_rows; i++){
+								weights[i] = new double[weight_cols];
+							}
+
+							for(int i = 0; i < weight_rows; i++){
+								for(int j = 0; j < weight_cols; j++){
+									std::uniform_real_distribution<double> range(rand_weights_min,rand_weights_max);
+									weights[i][j] = range(generator);
+								}
+							}
+
+							// Add all layers with weights
+							//cout << l << endl;
+							net->add_layer(l, nodes_per_layer[l], layer_actv_func[l], weights, weight_rows, weight_cols);
+						}
+
+
+						net->add_layer(layer_count - 1, nodes_per_layer[layer_count - 1], layer_actv_func[layer_count - 1], NULL, 0, 0);
+						input_file.close();
+						return;
+					}
+					//// Add output layer
+					//add_layer(int num, int num_nodes, string actv_func, double** weights, int weight_rows, int weight_cols);
+
+					input_tracker++;
+
+
+
+				}
+
+
+				// If it's our 10th input val (manual weight assignment)
+				else if (input_tracker == 10){
+					// If we're starting a new weight matrix, start pos is 1 to avoid bracket, else its start of line
 					if(beginning_weights){
 						string_start = 1;
+
+						// Allocate weight matrix based on layer nodes
 						weight_rows = nodes_per_layer[layer_tracker];
 						weight_cols = nodes_per_layer[layer_tracker + 1];
 						weights = new double*[weight_rows];
@@ -113,117 +276,91 @@ void Net_Helper::load_from_file(){
 						for(int i = 0; i < weight_rows; i++){
 							weights[i] = new double[weight_cols];
 						}
-
-
-						//cout << cur_row << cur_col << endl;
 					}
 					else{
 						string_start = 0;
 					}
 
-
-
-					//(int num, int num_nodes, string actv_func, double** weights, int weight_rows, int weight_cols)
-
 					// Iterate through our current line by char
 					for(string::size_type i = string_start; i < cur_line.size(); i++){
 
+						// Ignore spaces
 						 if(cur_line[i] == ' '){
 							continue;
 						 }
-
-						 // If we're at a comma, grab all proceeding text
-						 if(cur_line[i] == ','){
+						 // If we're at a comma, grab all preceeding text
+						 else if(cur_line[i] == ','){
+							// Grab current position in string and assign to substring
 							string_end = i;
-							temp_weights = temp_weights + cur_line.substr(string_start,string_end-string_start);
-							//printf("Weight: %s in pos [%i][%i]\n", temp_weights.c_str(), cur_row, cur_col);
+							temp_weights = cur_line.substr(string_start,string_end-string_start);
+							// Convert current weight value and put in matrix
 							weights[cur_row][cur_col] = stod(temp_weights);
 							temp_weights = "";
+							// Increment to next column
 							cur_col++;
-							//cout << cur_line.substr(string_start,string_end-string_start) << " ";
 							string_start = string_end + 1;
 						}
-						// If we're at a right bracket, we're at end of weight matrix. Set bool and continue
+						// If we're at a right bracket, we're at end of weight matrix
 						else if(cur_line[i] == ']'){
+							// Grab string position
 							string_end = i;
-							//cout << cur_line.substr(string_start,string_end-string_start) << " ";
-							temp_weights = temp_weights + cur_line.substr(string_start,string_end-string_start);
-							//printf("Weight: %s in pos [%i][%i]\n", temp_weights.c_str(), cur_row, cur_col);
+							// Grab current weight
+							temp_weights = cur_line.substr(string_start,string_end-string_start);
+							// Convert weight and store in matrix
 							weights[cur_row][cur_col] = stod(temp_weights);
 							temp_weights = "";
 							string_start = string_end + 1;
+							// Finished grabbing weight matrix, set bools to reflect a new matrix (to re-allocate weights) and end of matrix (to process and add layer)
 							beginning_weights = true;
-							end_line = true;
 							end_weights = true;
 
 						}
-						// If we're at the last character in the line grab weight value at end
+						// If we're at the last character in the line
 						else if(i == cur_line.size() - 1){
-							string_end = i +1;
-							temp_weights = temp_weights + cur_line.substr(string_start,string_end-string_start);
-							//printf("Weight: %s in pos [%i][%i]\n", temp_weights.c_str(), cur_row, cur_col);
+							// Grab last string in line
+							string_end = i + 1;
+							temp_weights = cur_line.substr(string_start,string_end-string_start);
+							// Convert and store
 							weights[cur_row][cur_col] = stod(temp_weights);
 							temp_weights = "";
-							end_line = true;
+							// At end of line but not matrix, change bool and increment row and reset column.
 							beginning_weights = false;
 							cur_row++;
 							cur_col = 0;
 						}
 
-						if(end_line){
-							//cout << temp_weights;
-							temp_weights = "";
-
-							end_line = false;
-						}
 						// Finished grabbing our weight matrix
 						if(end_weights){
-							//for(string::size_type i = 0; i < temp_weights.size(); i++){
-							//	cout << temp_weights;
-							//}
+							//(int num, int num_nodes, string actv_func, double** weights, int weight_rows, int weight_cols)
 
-							for(int i = 0; i < nodes_per_layer[layer_tracker]; i++){
+							// Grab our collected values and start creating layers
+							net->add_layer(layer_tracker, nodes_per_layer[layer_tracker], layer_actv_func[layer_tracker], weights, nodes_per_layer[layer_tracker], nodes_per_layer[layer_tracker + 1]);
+
+
+							// Reset our position vars for new matrix and reset bool
+							cur_row = 0;
+							cur_col = 0;
+							end_weights = false;
+
+							// Finished adding layer, incrememnt out counter for next layer weight processing
+							layer_tracker++;
+
+							/*for(int i = 0; i < nodes_per_layer[layer_tracker]; i++){
 								for(int j = 0; j<nodes_per_layer[layer_tracker+1]; j++){
 									printf("%f ",weights[i][j]);
 								}
 								cout << endl;
 							}
-							temp_weights = "";
-							cur_row = 0;
-							cur_col = 0;
-							end_weights = false;
 							cout << "\n------\n";
-							//input_tracker++;
-							layer_tracker++;
+							*/
+
 						}
-
-
-
-
-
-
-						/*if(cur_line[i] == ']'){
-							input_tracker++;
-						}
-						else if(cur_line[i] == ','){
-							string_end = i;
-							cout << cur_line.substr(string_start,string_end-string_start) << " ";
-							string_start = string_end + 1;
-						}*/
 					}
-
-
 				}
-
-
 			}
-
-
-
-
-
-
 		}
+		// Add our final output layer
+		net->add_layer(layer_tracker, nodes_per_layer[layer_tracker], layer_actv_func[layer_tracker], NULL, 0, 0);
 
 		// Finished. Close file
 		input_file.close();
@@ -279,14 +416,15 @@ void Net_Helper::reset_network(){
 	Layer* temp = net->input_layer;
 
 	// Loop through each layer
-	for(int i = 0; i < net->layer_count; i++){
 
-		// Copy original output to output vector
+	for(int i = 0; i < net->layer_count; i++){
 		memcpy(temp->output, temp->orig_output, sizeof(double)*temp->num_nodes);
+		// Copy original output to output vector
 		// If not input layer, copy original input to layer
 		if(temp != net->input_layer){
 			memcpy(temp->input, temp->orig_input, sizeof(double)*temp->num_nodes);
 		}
+
 		// Loop through our weight arrays and reset to original values
 		for (int j = 0; j < temp->weight_rows; j++)
    		{
@@ -301,21 +439,26 @@ void Net_Helper::reset_network(){
 // Delete and clear memory of all network values (start fresh)
 // Clear out NN layers from memory
 void Net_Helper::delete_network(){
+	cout << "STARTING";
 	Layer* cur = net->input_layer;
 	Layer* next = cur->next_layer;
 	int i = 0;
 	while(cur != NULL){
-		cout << i << endl;
-		cur->next_layer = NULL;
-		cur->prev_layer = NULL;
+
+		//cur->next_layer = NULL;
+		//cur->prev_layer = NULL;
 
 
 		delete cur->input;
 		delete cur->output;
 		delete cur->weights;
 
-		delete cur;
+		delete cur->orig_input;
+		delete cur->orig_output;
+		delete cur->orig_weights;
 
+
+		delete cur;
 		cur = next;
 		if(cur != NULL){
 			next = cur->next_layer;
@@ -325,6 +468,7 @@ void Net_Helper::delete_network(){
 	net->last_layer = NULL;
 	net->input_layer = NULL;
 	net->layer_count = 0;
+	cout << "FINISHED";
 }
 
 // Interactive network setup

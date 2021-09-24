@@ -25,8 +25,13 @@ Layer::Layer(int num, int num_nodes, string actv_func, double* input, double* ou
 
     this->orig_input = new double[num_nodes];
     this->orig_output = new double[num_nodes];
+    for(int i = 0; i < num_nodes; i++){
+        orig_input[i] = 0;
+        orig_output[i] = 0;
+    }
 
     orig_weights = new double*[weight_rows];
+
     for (int j = 0; j < weight_rows; j++)
     {
         orig_weights[j] = new double[weight_cols];

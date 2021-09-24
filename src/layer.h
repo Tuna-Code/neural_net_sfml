@@ -21,7 +21,6 @@ class Layer{
         double* orig_input; // Layer input array
         double* orig_output; // Layer output after computation
         double** orig_weights; // Weights of connections leaving layer
-        double* orig_layer_product;
 
         string actv_func; // Which activation function we want for this layer
         Layer* next_layer = NULL; // Pointer to next layer in linked list
