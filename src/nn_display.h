@@ -50,6 +50,7 @@ class NN_Display{
 		bool close_node_disp;
 
 
+
 		util::Platform platform;
 		sf::RenderWindow net_disp_window;
 		sf::RenderWindow layer_data_window;

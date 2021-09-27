@@ -52,11 +52,13 @@ NN_Display::NN_Display(Net_Helper* net){
 	close_node_disp = false;
 
 
+
 }
 
 // Function for minimal display (for large nets)
 void NN_Display::display_side_menu(){
-
+	bool net_loaded = false;
+	NN_gui_setup* setup = new NN_gui_setup(net);
 	// Set initial window size
 	int win_x = 300;
 	bool disp_controls = false;
@@ -106,8 +108,13 @@ void NN_Display::display_side_menu(){
 	control_string_list.push_back("Load Training Data");
 	control_string_list.push_back("-> Prop.");
 	control_string_list.push_back("<- Prop.");
-	control_string_list.push_back("Reset to Initial");
-	control_string_list.push_back("Display Weights (All)");
+	control_string_list.push_back("Reset (Init Vals)");
+	control_string_list.push_back("Display Net (Data)");
+	control_string_list.push_back("Display Net (Visual)");
+
+
+
+	//control_string_list.push_back("Display Weights (All)");
 
 	// Set initial Y position for button
 	int cur_y = title.getPosition().y + title.getGlobalBounds().height + button_spacer;
@@ -140,14 +147,21 @@ void NN_Display::display_side_menu(){
 	side_menu_window.create(sf::VideoMode(win_x * screenScalingFactor, max_y * screenScalingFactor), "Neural Netowrk GUI Interface");
 	side_menu_window.setPosition(sf::Vector2(10, 10));
 	platform.setIcon(side_menu_window.getSystemHandle());
-
+	sf::Color button_color(sf::Color::Black);
 // ---------------------------------------- Main window loop------------------------------------------
 	// If user loaded network on homescreen, spwan thread and display
 	if(net->net->input_layer != NULL){
 			t0 = new std::thread(display_net, this);
+			net_loaded = true;
 	}
 	// Main window open loop
 	while (side_menu_window.isOpen()){
+		if(net_loaded){
+			button_color = sf::Color(128, 128,128);
+		}
+		else{
+			button_color = sf::Color(55, 55, 55);
+		}
 		// Get current event
 		while (side_menu_window.pollEvent(side_menu_event)){
 
@@ -169,16 +183,18 @@ void NN_Display::display_side_menu(){
 				// Loop through out buttons and see which was clocked
 				for(int i = 0; i < option_button_list.size(); i++){
 					if(option_button_list[i].rect.getGlobalBounds().contains(side_menu_window.mapPixelToCoords(sf::Mouse::getPosition(side_menu_window)))){
+
+						// Button 0 (Select + load network)
 						if(i == 0){
-							// If button 0 was clicked (load new network)
 							// Get path to network to load
 							string new_net = display_file_select_load(side_menu_window.getPosition().x + side_menu_window.getSize().x + spacer, side_menu_window.getPosition().y  + spacer, ".top");
+
 							// If no network is loaded yet
 							if(net->net->input_layer == NULL){
 								// Verify file path was returned and load net
 								if(new_net != ""){
 									net->load_from_file(new_net);
-
+									net_loaded = true;
 									// Spawn new thread and display
 									t0 = new std::thread(display_net, this);
 								}
@@ -186,35 +202,112 @@ void NN_Display::display_side_menu(){
 							// If network is already loaded
 							else{
 
-								// If main window is already open, close it and rejoin thread
-								if(net_disp_window.isOpen()){
-									net_disp_window.close();
-									t0->join();
+
+								if(node_data_window.isOpen()){
+									close_node_disp = true;
+
+									t2->join();
 								}
-								// If side layer data panel is open, close it and update bools and rejoin thread
 								if(layer_data_window.isOpen()){
-									layer_data_window.close();
-									stats_window_open = false;
-									update_stats_window = true;
+									close_layer_disp = true;
 									t1->join();
 								}
-								// If side node data panel is open, close it and update bools and rejoin thread
-								if(node_data_window.isOpen()){
-									node_data_window.close();
-									node_window_open = false;
-									update_node_window = true;
-									t2->join();
+								if(net_disp_window.isOpen()){
+									close_net_disp = true;
+									t0->join();
 								}
 
 								// Clear out network and release memory
 								net->delete_network();
 								// Load newly chosen network
 								net->load_from_file(new_net);
+								net_loaded = true;
 								// Spawn new thread and display net
 								t0 = new std::thread(display_net, this);
 							}
 						}
+						if(i == 1){
+
+
+							if(node_data_window.isOpen()){
+								close_node_disp = true;
+
+								t2->join();
+							}
+							if(layer_data_window.isOpen()){
+								close_layer_disp = true;
+								t1->join();
+							}
+							if(net_disp_window.isOpen()){
+								close_net_disp = true;
+								t0->join();
+							}
+
+
+							net->delete_network();
+							net_loaded = false;
+
+						}
+						if(i == 2){
+							if(node_data_window.isOpen()){
+								close_node_disp = true;
+
+								t2->join();
+							}
+							if(layer_data_window.isOpen()){
+								close_layer_disp = true;
+								t1->join();
+							}
+							if(net_disp_window.isOpen()){
+								close_net_disp = true;
+								t0->join();
+							}
+
+
+							if(net_loaded){
+								net->delete_network();
+								net_loaded = false;
+							}
+							side_menu_window.close();
+							setup->display_title();
+
+
+						}
+
 					}
+				}
+				for(int i = 0; i < control_button_list.size(); i++){
+					if(control_button_list[i].rect.getGlobalBounds().contains(side_menu_window.mapPixelToCoords(sf::Mouse::getPosition(side_menu_window))) && net_loaded){
+
+						if(i == 1){
+							if(!net_disp_window.isOpen() && (net->net->input_layer != NULL)){
+								t0 = new std::thread(display_net, this);
+							}
+
+						}
+						if(i == 2){
+							net->net->forward_prop();
+							update_stats_window = true;
+							update_node_window = true;
+
+						}
+						if(i == 4){
+							net->reset_network();
+							update_stats_window = true;
+							update_node_window =true;
+						}
+
+						if(i == 6){
+							if(!net_disp_window.isOpen()){
+								t0 = new std::thread(display_net, this);
+							}
+						}
+						//if(i == 6){
+						//	display_weight_text[net->net->layer_count - 1][0] = !display_weight_text[net->net->layer_count - 1][0];
+
+						//}
+					}
+
 				}
 			}
 		}
@@ -230,13 +323,14 @@ void NN_Display::display_side_menu(){
 			side_menu_window.draw(option_button_list[i].rect);
 			side_menu_window.draw(option_button_list[i].text);
 		}
-		if(net->net->input_layer != NULL){
-			side_menu_window.draw(net_control);
-			for(int i = 0; i < control_button_list.size(); i++){
-				side_menu_window.draw(control_button_list[i].rect);
-				side_menu_window.draw(control_button_list[i].text);
-			}
+		//if(net->net->input_layer != NULL){
+		side_menu_window.draw(net_control);
+		for(int i = 0; i < control_button_list.size(); i++){
+			control_button_list[i].rect.setFillColor(button_color);
+			side_menu_window.draw(control_button_list[i].rect);
+			side_menu_window.draw(control_button_list[i].text);
 		}
+		//}
 
 
 		// Display buffer
@@ -643,17 +737,13 @@ void NN_Display::display_net(){
 // ---------------------------------------- Open Main Loop --------------------------------------------------
 	// Window open loop
 	while (net_disp_window.isOpen()){
-
 		if(close_net_disp){
-			cout << "\nclosing net disp...\n";
 			close_net_disp = false;
 			net_disp_window.close();
-			//net->delete_network();
-
-
-			disp_layer = -1;
 			return;
+
 		}
+
 		// Grab event
 		while (net_disp_window.pollEvent(net_disp_event)){
 
@@ -661,7 +751,7 @@ void NN_Display::display_net(){
 			if (net_disp_event.type == sf::Event::Closed)
 			{
 				net_disp_window.close();
-				close_net_disp = false;
+
 				disp_layer = -1;
 				return;
 			}
@@ -669,7 +759,7 @@ void NN_Display::display_net(){
 			else if(net_disp_event.type == sf::Event::KeyPressed){
 				if(net_disp_event.key.code == sf::Keyboard::Escape){
 					net_disp_window.close();
-					close_net_disp = false;
+
 					disp_layer = -1;
 					return;
 				}
@@ -916,16 +1006,14 @@ void NN_Display::display_node_stats(){
 	int layer_num = 0;
 	int node_num = 0;
 	while (node_data_window.isOpen()){
+
 		if(close_node_disp){
-			node_data_window.close();
 			close_node_disp = false;
 			node_window_open = false;
 			update_node_window = true;
-			cur_node_disp_layer = -1;
-			cur_node_disp_node = -1;
+			node_data_window.close();
 			return;
 		}
-
 		// If a data update occurred, recompute our displayed info
 		if(update_node_window){
 
@@ -1074,18 +1162,14 @@ void NN_Display::display_layer_stats(){
 
 // ---------------------------------------- Main Open Loop --------------------------------------------------
 	while (layer_data_window.isOpen()){
-		if(close_layer_disp){
 
+		if(close_layer_disp){
 			close_layer_disp = false;
 			stats_window_open = false;
 			update_stats_window = true;
-			cur_node_disp_layer = -1;
-			cur_node_disp_node = -1;
-			disp_layer = -1;
 			layer_data_window.close();
 			return;
 		}
-
 		if(update_stats_window){
 
 			//cout << "UPDATE DETECTED!\n";

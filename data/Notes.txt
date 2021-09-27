@@ -1,0 +1,17 @@
+Links:
+
+[10:04 AM] Abney, Landon
+    https://tools.engr.oregonstate.edu/coetools/directory.php
+​[10:05 AM] Abney, Landon
+    https://secure.engr.oregonstate.edu/wiki/support/index.php
+​[10:06 AM] Abney, Landon
+    https://support.engineering.oregonstate.edu/
+
+Oregon State Bridge (training.oregonstate.edu)
+
+O365 (is.oregonstate.edu/microsoft)
+
+-----------------
+Systems:
+mars.engr.oregonstate.edu
+- The common IT "workstation", and only point of access for many LOMs and network equipment
