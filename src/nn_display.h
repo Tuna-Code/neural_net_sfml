@@ -15,12 +15,15 @@ class NN_Display{
 		NN_Display(Net_Helper* net);
 		void display_net();
 		void display_side_menu();
+		void display_net_data();
 		//void display_layer_stats(Net_Helper* net, int active_layer);
 		void display_layer_stats();
 		void display_node_stats();
 		std::thread* t1;
 		std::thread* t2;
 		std::thread* t0;
+		std::thread* t3;
+
 
 		int max_font_size;
 		int disp_layer;
@@ -56,9 +59,11 @@ class NN_Display{
 		sf::RenderWindow layer_data_window;
 		sf::RenderWindow node_data_window;
 		sf::RenderWindow side_menu_window;
+		sf::RenderWindow net_data_window;
 		sf::Event net_disp_event;
 		sf::Event layer_data_event;
 		sf::Event node_data_event;
 		sf::Event side_menu_event;
+		sf::Event net_data_event;
 		float screenScalingFactor;
 };

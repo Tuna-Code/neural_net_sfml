@@ -1,0 +1,43 @@
+##--------------- How many Layers in network ---------------
+# Layer_Count:
+100
+
+
+##--------------- How many Nodes per layer -----------------
+##----- Ranndom number of nodes
+##----- Only set input and output layer node count
+
+#Random_nodes_per_layer (0 - false, 1 - true):
+1
+#Random_Range_Min:
+2
+#Random_Range_Max:
+6
+#Input and output layer node count (for random)
+[4,3]
+
+##----- Manual set node count
+# Nodes_Per_Layer (if Random_Nodes_Per_Layer is 0):
+[2,2,2,2,2]
+
+
+##--------------- Which activation function for layer ------
+#Layer_Actv_Funcs:
+[Null,Sigmoid,Sigmoid,Sigmoid,Sigmoid]
+
+
+##--------------- Set initial weight matricies for layer ---
+##----- Assign random initial weights
+#Random_Weights (0 - false, 1 - true):
+1
+#Random_Range_Min:
+-0.999999
+#Random_Range_Max:
+0.999999
+
+##----- Manually assign initial weights
+[6,-3
+-2,5]
+
+[1,-2
+0.25,2]

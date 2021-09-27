@@ -104,13 +104,13 @@ void NN_Display::display_side_menu(){
 	option_string_list.push_back("Clear Memory");
 	option_string_list.push_back("Main Menu");
 
-	control_string_list.push_back("Load Inputs");
 	control_string_list.push_back("Load Training Data");
+	control_string_list.push_back("Load Testing Data");
 	control_string_list.push_back("-> Prop.");
 	control_string_list.push_back("<- Prop.");
 	control_string_list.push_back("Reset (Init Vals)");
-	control_string_list.push_back("Display Net (Data)");
 	control_string_list.push_back("Display Net (Visual)");
+	control_string_list.push_back("Display Net (Data View)");
 
 
 
@@ -197,33 +197,39 @@ void NN_Display::display_side_menu(){
 									net_loaded = true;
 									// Spawn new thread and display
 									t0 = new std::thread(display_net, this);
+									//sleep(1);
+									//t3 = new std::thread(display_net_data, this);
 								}
 							}
 							// If network is already loaded
 							else{
 
+								// Verify file path was returned and load net
+								if(new_net != ""){
+									if(node_data_window.isOpen()){
+										close_node_disp = true;
 
-								if(node_data_window.isOpen()){
-									close_node_disp = true;
+										t2->join();
+									}
+									if(layer_data_window.isOpen()){
+										close_layer_disp = true;
+										t1->join();
+									}
+									if(net_disp_window.isOpen()){
+										close_net_disp = true;
+										t0->join();
+									}
 
-									t2->join();
-								}
-								if(layer_data_window.isOpen()){
-									close_layer_disp = true;
-									t1->join();
-								}
-								if(net_disp_window.isOpen()){
-									close_net_disp = true;
-									t0->join();
-								}
+									// Clear out network and release memory
+									net->delete_network();
+									// Load newly chosen network
+									net->load_from_file(new_net);
+									net_loaded = true;
+									// Spawn new thread and display net
+									t0 = new std::thread(display_net, this);
 
-								// Clear out network and release memory
-								net->delete_network();
-								// Load newly chosen network
-								net->load_from_file(new_net);
-								net_loaded = true;
-								// Spawn new thread and display net
-								t0 = new std::thread(display_net, this);
+									//t3 = new std::thread(display_net_data, this);
+								}
 							}
 						}
 						if(i == 1){
@@ -296,8 +302,16 @@ void NN_Display::display_side_menu(){
 							update_stats_window = true;
 							update_node_window =true;
 						}
-
 						if(i == 6){
+							if(net_disp_window.isOpen()){
+								t3 = new std::thread(display_net_data, this);
+							}
+							else{
+								t0 = new std::thread(display_net, this);
+								t3 = new std::thread(display_net_data, this);
+							}
+						}
+						if(i == 5){
 							if(!net_disp_window.isOpen()){
 								t0 = new std::thread(display_net, this);
 							}
@@ -346,30 +360,56 @@ void NN_Display::display_side_menu(){
 
 
 
+// Funtion for displaying neural net data window for training/testing/etc...
+void NN_Display::display_net_data(){
+	double x = 600;
+	double y = 700;
+	sf::Text title;
+	sf::Font title_font;
+	if (!title_font.loadFromFile("fonts/akira.otf"))
+	{
+		cout << "FONT NOT FOUND!!\n";
+		std::exit(EXIT_FAILURE);
+	}
+
+	// Set font attributes for main heading
+	title.setFont(title_font);
+	title.setString("Net Data View");
+	title.setCharacterSize(max_font_size * 0.8);
+	title.setFillColor(sf::Color::White);
+	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
+	title.setPosition(x / 2 - title.getGlobalBounds().width /2, label_spacer);
 
 
+	net_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "Neural Netowrk GUI Interface");
+	net_data_window.setPosition(sf::Vector2((int)net_disp_window.getPosition().x + (int)net_disp_window.getSize().x + 10, (int)net_disp_window.getPosition().y));
+	platform.setIcon(net_data_window.getSystemHandle());
+
+	while(net_data_window.isOpen()){
+
+		while (net_data_window.pollEvent(net_data_event)){
+
+			// If user closes
+			if (net_data_event.type == sf::Event::Closed){
+				net_data_window.close();
+				return;
+			}
+			// If user hits presses a key
+			else if(net_data_event.type == sf::Event::KeyPressed){
+				// If escape is pressed
+				if(net_data_event.key.code == sf::Keyboard::Escape){
+					net_data_window.close();
+					return;
+				}
+			}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		}
+		net_data_window.clear();
+		net_data_window.draw(title);
+		net_data_window.display();
+	}
+}
 
 
 

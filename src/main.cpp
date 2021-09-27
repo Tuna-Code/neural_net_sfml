@@ -24,11 +24,12 @@ int main()
 	// Object for handling initial menu and network setup loops
 	//NN_gui_setup* setup = new NN_gui_setup(net_helper);
 	NN_Display* display = new NN_Display(net_helper);
-	net_helper->setup_test_net(0);
+	//net_helper->setup_test_net(0);
 	//helper->display_title();
 	//setup->display_int_setup();
 	//setup->display_title();
-	display->display_net();
+	//display->display_net();
+	display->display_side_menu();
 	cout << "DONE!";
 
 	return 0;

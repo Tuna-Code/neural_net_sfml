@@ -14,7 +14,7 @@
 #include <thread>
 #include <vector>
 #include "boost/filesystem.hpp"					// Boost lib for filesystem I/O simplicity
-
+#include <unistd.h>
 
 //---------------- Defines ----------------
 #define PI 3.14159265
