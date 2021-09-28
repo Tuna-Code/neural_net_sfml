@@ -15,7 +15,7 @@ class NN_Display{
 		NN_Display(Net_Helper* net);
 		void display_net();
 		void display_side_menu();
-		void display_net_data();
+		void display_training_options();
 		//void display_layer_stats(Net_Helper* net, int active_layer);
 		void display_layer_stats();
 		void display_node_stats();

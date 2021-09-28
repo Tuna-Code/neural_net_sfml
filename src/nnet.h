@@ -13,7 +13,8 @@ class NNet{
         Layer* input_layer; // Pointer to input layer (Layer 0)
         Layer* last_layer; // Pointer to most recently added layer
 
-
+        double** training_data;
+        
         Layer* cur_layer; // Pointer to current layer (for ease of visualization when iterating)
 
 

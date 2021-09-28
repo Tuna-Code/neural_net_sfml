@@ -110,7 +110,7 @@ void NN_Display::display_side_menu(){
 	control_string_list.push_back("<- Prop.");
 	control_string_list.push_back("Reset (Init Vals)");
 	control_string_list.push_back("Display Net (Visual)");
-	control_string_list.push_back("Display Net (Data View)");
+	control_string_list.push_back("Training Options");
 
 
 
@@ -304,11 +304,11 @@ void NN_Display::display_side_menu(){
 						}
 						if(i == 6){
 							if(net_disp_window.isOpen()){
-								t3 = new std::thread(display_net_data, this);
+								t3 = new std::thread(display_training_options, this);
 							}
 							else{
-								t0 = new std::thread(display_net, this);
-								t3 = new std::thread(display_net_data, this);
+								//t0 = new std::thread(display_net, this);
+								//t3 = new std::thread(display_net_data, this);
 							}
 						}
 						if(i == 5){
@@ -361,11 +361,19 @@ void NN_Display::display_side_menu(){
 
 
 // Funtion for displaying neural net data window for training/testing/etc...
-void NN_Display::display_net_data(){
+void NN_Display::display_training_options(){
+
 	double x = 600;
 	double y = 700;
 	sf::Text title;
 	sf::Font title_font;
+
+
+
+
+
+
+
 	if (!title_font.loadFromFile("fonts/akira.otf"))
 	{
 		cout << "FONT NOT FOUND!!\n";
@@ -374,14 +382,14 @@ void NN_Display::display_net_data(){
 
 	// Set font attributes for main heading
 	title.setFont(title_font);
-	title.setString("Net Data View");
+	title.setString("Network Training Options");
 	title.setCharacterSize(max_font_size * 0.8);
 	title.setFillColor(sf::Color::White);
 	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
-	title.setPosition(x / 2 - title.getGlobalBounds().width /2, label_spacer);
+	title.setPosition(label_spacer, label_spacer);
 
 
-	net_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "Neural Netowrk GUI Interface");
+	net_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "Network Training Options");
 	net_data_window.setPosition(sf::Vector2((int)net_disp_window.getPosition().x + (int)net_disp_window.getSize().x + 10, (int)net_disp_window.getPosition().y));
 	platform.setIcon(net_data_window.getSystemHandle());
 

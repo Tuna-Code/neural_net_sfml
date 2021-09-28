@@ -11,6 +11,7 @@ NNet::NNet(){
     input_layer = NULL;
     last_layer = NULL;
     cur_layer = NULL;
+    training_data = NULL;
 
 }
 

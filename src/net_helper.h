@@ -20,4 +20,5 @@ class Net_Helper
         void reset_network();
         void delete_network();
         void load_from_file(string file_path);
+        void load_training_from_file(string file_path);
 };

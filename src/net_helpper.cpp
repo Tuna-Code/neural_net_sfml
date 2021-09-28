@@ -384,6 +384,57 @@ void Net_Helper::load_from_file(string file_path){
 
 }
 
+// Load training data from external file
+void Net_Helper::load_training_from_file(string file_path){
+
+	if(net->training_data == NULL){
+		cout << "No Data Loaded!\nStarting fresh...\n";
+	}
+	else{
+		cout << "Training data already loaded... Starting again\n";
+	}
+	int num_inputs = net->input_layer->num_nodes;
+	int num_outputs = net->last_layer->num_nodes;
+	double temp = 0;
+
+
+	string cur_line = "";
+
+	// Try to open our file path
+	std::ifstream input_file(file_path);
+
+	// While file is open
+	if(input_file.is_open()){
+
+		// Grab current line and assign to cur_line
+		while(getline(input_file, cur_line)){
+			// If line contains # its a label or is blank, ignore
+			if(cur_line.find("#") != string::npos || cur_line.size() == 0){
+				continue;
+			}
+			// Line is valid, iterate through and grab values
+			else{
+				for(string::size_type i = 1; i < cur_line.size(); i++){
+						// If current char is comma or space, ignore
+						if(cur_line[i] == ',' || cur_line[i] == ' '){
+							continue;
+						}
+						// If data, grab it
+						else{
+							//temp = stod(cur_line[i]);
+							//cout << temp << " ";
+						}
+				}
+				cout << endl;
+			}
+
+
+		}
+	}
+
+}
+
+
 // Print topology of current network
 void Net_Helper::print_network()
 {
