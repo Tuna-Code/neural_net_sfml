@@ -18,6 +18,9 @@ int main()
 	// Object for handling initial menu and network setup loops
 	net_helper->load_from_file("data/testnet.top");
 	net_helper->load_training_from_file("data/testnet.training");
+	//net_helper->delete_network();
+	//net_helper->load_training_from_file("data/testnet.training");
+
 	//NN_gui_setup* setup = new NN_gui_setup(net_helper);
 	NN_Display* display = new NN_Display(net_helper);
 	//net_helper->setup_test_net(0);

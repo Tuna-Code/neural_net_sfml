@@ -221,7 +221,7 @@ void Net_Helper::load_from_file(string file_path){
 					if(random_weights){
 
 
-						cout << endl << layer_count << endl;
+
 
 
 						for(int l = 0; l < layer_count - 1; l++){
@@ -393,45 +393,94 @@ void Net_Helper::load_training_from_file(string file_path){
 	else{
 		cout << "Training data already loaded... Starting again\n";
 	}
-	int num_inputs = net->input_layer->num_nodes;
-	int num_outputs = net->last_layer->num_nodes;
+
 	double temp = 0;
-
-
 	string cur_line = "";
+	int string_start = 0;
+	int string_end = 0;
+	int num_data_entries = net->input_layer->num_nodes + net->last_layer->num_nodes;
+	string temp_d = "";
+	int cur_row = 0;
+	int cur_entry = 0;
+	int num_data_inputs = 0;
 
-	// Try to open our file path
+	// Create out input file stream object
 	std::ifstream input_file(file_path);
 
 	// While file is open
 	if(input_file.is_open()){
-
 		// Grab current line and assign to cur_line
 		while(getline(input_file, cur_line)){
 			// If line contains # its a label or is blank, ignore
 			if(cur_line.find("#") != string::npos || cur_line.size() == 0){
 				continue;
 			}
-			// Line is valid, iterate through and grab values
+			// If line is data, increment our counter
 			else{
-				for(string::size_type i = 1; i < cur_line.size(); i++){
-						// If current char is comma or space, ignore
-						if(cur_line[i] == ',' || cur_line[i] == ' '){
-							continue;
-						}
-						// If data, grab it
-						else{
-							//temp = stod(cur_line[i]);
-							//cout << temp << " ";
-						}
-				}
-				cout << endl;
+				num_data_inputs++;
 			}
+		}
+	}
+	// Close our file when finished
+	input_file.close();
 
-
+	// Allocate our 2d array of training data and initialize values to 0
+	net->training_data = new double*[num_data_inputs];
+	for(int i = 0; i < num_data_inputs; i++){
+		net->training_data[i] = new double[num_data_entries];
+		for(int j = 0; j < num_data_entries; j++){
+			net->training_data[i][j] = 0;
 		}
 	}
 
+	// Try to open our file path (for parsing CSV and storing input values)
+	input_file.open(file_path);
+	// While file is open
+	if(input_file.is_open()){
+		// Grab current line and assign to cur_line
+		while(getline(input_file, cur_line)){
+			// If line contains # its a label or is blank, ignore
+			cur_entry = 0;
+			if(cur_line.find("#") != string::npos || cur_line.size() == 0){
+				continue;
+			}
+			// Line is valid, iterate through and grab values
+			else{
+				// Starting position of text in line
+				string_start = 0;
+				// Loop from starting position until EOL
+				for(string::size_type i = string_start; i < cur_line.size(); i++){
+						// If current char is space, ignore
+						if(cur_line[i] == ' '){
+							continue;
+						}
+						// If on comma, grab preceeding text and convert to double and store
+						else if (cur_line[i] == ','){
+							string_end = i;
+							temp_d = cur_line.substr(string_start,string_end-string_start);
+							temp = stod(temp_d);
+							// Store value in our 2d array and increment position
+							net->training_data[cur_row][cur_entry] = temp;
+							cur_entry++;
+							string_start = string_end + 1;
+						}
+						// If at end of line, grab remaining text (last value) and store
+						if(i == cur_line.size() -1){
+							string_end = i;
+							temp_d = cur_line.substr(string_start,string_end);
+							temp = stod(temp_d);
+							// Store value in our 2d array and increment position
+							net->training_data[cur_row][cur_entry] = temp;
+							cur_entry++;
+						}
+				}
+			}
+			// Finished parsing line, increment our row to next entry in our 2d array
+			cur_row++;
+		}
+		// Finished reading data, close input file
+		input_file.close();
+	}
 }
 
 
@@ -450,7 +499,6 @@ void Net_Helper::print_network()
 	{
 		printf("%f ", cur->input[i]);
 	}
-	cout << endl << endl;
 
 	// Print info for each layer (iterating through linked list)
 	while (cur != NULL)
@@ -490,10 +538,10 @@ void Net_Helper::reset_network(){
 // Delete and clear memory of all network values (start fresh)
 // Clear out NN layers from memory
 void Net_Helper::delete_network(){
-	cout << "STARTING";
 	Layer* cur = net->input_layer;
 	Layer* next = cur->next_layer;
 	int i = 0;
+	//delete net->training_data;
 	while(cur != NULL){
 
 		//cur->next_layer = NULL;
@@ -503,6 +551,7 @@ void Net_Helper::delete_network(){
 		delete cur->input;
 		delete cur->output;
 		delete cur->weights;
+
 
 		delete cur->orig_input;
 		delete cur->orig_output;
@@ -519,7 +568,6 @@ void Net_Helper::delete_network(){
 	net->last_layer = NULL;
 	net->input_layer = NULL;
 	net->layer_count = 0;
-	cout << "FINISHED";
 }
 
 // Interactive network setup
@@ -538,7 +586,6 @@ void Net_Helper::setup_network()
 	cout << "How many layers will be in the network?: ";
 	cin >> layer_count;
 	node_count = new int[layer_count];
-	cout << endl;
 
 	// Get the number of nodes per layer
 	for (int i = 0; i < layer_count; i++)
