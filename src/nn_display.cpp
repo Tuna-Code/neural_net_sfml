@@ -369,7 +369,7 @@ void NN_Display::display_training_options(){
 	sf::Font title_font;
 
 
-
+	sf::Text training_stats;
 
 
 
@@ -388,12 +388,24 @@ void NN_Display::display_training_options(){
 	title.setStyle(sf::Text::Bold | sf::Text::Underlined);
 	title.setPosition(label_spacer, label_spacer);
 
+	training_stats.setFont(title_font);
+	training_stats.setCharacterSize(max_font_size * 0.66667);
+	training_stats.setFillColor(sf::Color::White);
+	//training_stats.setStyle(sf::Text::Bold );
+	training_stats.setPosition(title.getPosition().x, title.getPosition().y + title.getGlobalBounds().height + 2*spacer);
+
 
 	net_data_window.create(sf::VideoMode(x * screenScalingFactor, y * screenScalingFactor), "Network Training Options");
 	net_data_window.setPosition(sf::Vector2((int)net_disp_window.getPosition().x + (int)net_disp_window.getSize().x + 10, (int)net_disp_window.getPosition().y));
 	platform.setIcon(net_data_window.getSystemHandle());
 
 	while(net_data_window.isOpen()){
+		training_stats.setString("* Num training sets loaded: " + to_string(net->net->num_training_sets) + "\n--------\n");
+		training_stats.setString(training_stats.getString() + "* Current training set position: " + to_string(net->net->cur_training_set) + "\n\n------------------\n\n");
+		training_stats.setString(training_stats.getString() + "* Current network outputs:\n[");
+		training_stats.setString(training_stats.getString() + "* Current expected outputs:\n" + to_string(net->net->cur_training_set) + "\n--------\n");
+
+
 
 		while (net_data_window.pollEvent(net_data_event)){
 
@@ -415,6 +427,7 @@ void NN_Display::display_training_options(){
 		}
 		net_data_window.clear();
 		net_data_window.draw(title);
+		net_data_window.draw(training_stats);
 		net_data_window.display();
 	}
 }

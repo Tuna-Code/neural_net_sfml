@@ -12,9 +12,10 @@ class NNet{
         int layer_count; // How many layers total are in the network
         Layer* input_layer; // Pointer to input layer (Layer 0)
         Layer* last_layer; // Pointer to most recently added layer
-
+        int cur_training_set;
+        int num_training_sets;
         double** training_data;
-        
+
         Layer* cur_layer; // Pointer to current layer (for ease of visualization when iterating)
 
 

@@ -12,7 +12,8 @@ NNet::NNet(){
     last_layer = NULL;
     cur_layer = NULL;
     training_data = NULL;
-
+    num_training_sets = 0;
+    cur_training_set = 0;
 }
 
 // Process data forward through the network

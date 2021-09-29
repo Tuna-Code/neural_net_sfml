@@ -402,8 +402,8 @@ void Net_Helper::load_training_from_file(string file_path){
 	string temp_d = "";
 	int cur_row = 0;
 	int cur_entry = 0;
-	int num_data_inputs = 0;
-
+	//int num_data_inputs = 0;
+	net->num_training_sets = 0;
 	// Create out input file stream object
 	std::ifstream input_file(file_path);
 
@@ -417,7 +417,7 @@ void Net_Helper::load_training_from_file(string file_path){
 			}
 			// If line is data, increment our counter
 			else{
-				num_data_inputs++;
+				net->num_training_sets++;
 			}
 		}
 	}
@@ -425,8 +425,8 @@ void Net_Helper::load_training_from_file(string file_path){
 	input_file.close();
 
 	// Allocate our 2d array of training data and initialize values to 0
-	net->training_data = new double*[num_data_inputs];
-	for(int i = 0; i < num_data_inputs; i++){
+	net->training_data = new double*[net->num_training_sets];
+	for(int i = 0; i < net->num_training_sets; i++){
 		net->training_data[i] = new double[num_data_entries];
 		for(int j = 0; j < num_data_entries; j++){
 			net->training_data[i][j] = 0;
@@ -481,6 +481,12 @@ void Net_Helper::load_training_from_file(string file_path){
 		// Finished reading data, close input file
 		input_file.close();
 	}
+	/*for(int i = 0; i < net->num_training_sets; i++){
+		for(int j = 0; j < num_data_entries; j++){
+			printf("%f ", net->training_data[i][j]);
+		}
+		printf("\n");
+	}*/
 }
 
 
