@@ -50,7 +50,7 @@ NN_Display::NN_Display(Net_Helper* net){
 	close_net_disp = false;
 	close_layer_disp = false;
 	close_node_disp = false;
-
+	close_training_disp = false;
 
 
 }
@@ -219,6 +219,10 @@ void NN_Display::display_side_menu(){
 										close_net_disp = true;
 										t0->join();
 									}
+									if(net_data_window.isOpen()){
+										close_training_disp = true;
+										t3->join();
+									}
 
 									// Clear out network and release memory
 									net->delete_network();
@@ -248,6 +252,10 @@ void NN_Display::display_side_menu(){
 								close_net_disp = true;
 								t0->join();
 							}
+							if(net_data_window.isOpen()){
+								close_training_disp = true;
+								t3->join();
+							}
 
 
 							net->delete_network();
@@ -267,6 +275,10 @@ void NN_Display::display_side_menu(){
 							if(net_disp_window.isOpen()){
 								close_net_disp = true;
 								t0->join();
+							}
+							if(net_data_window.isOpen()){
+								close_training_disp = true;
+								t3->join();
 							}
 
 
@@ -379,6 +391,9 @@ void NN_Display::display_training_options(){
 		cout << "FONT NOT FOUND!!\n";
 		std::exit(EXIT_FAILURE);
 	}
+	Button backward("<---",spacer, y - 30);
+	Button forward("--->",8 * spacer, y - 30);
+
 
 	// Set font attributes for main heading
 	title.setFont(title_font);
@@ -399,14 +414,50 @@ void NN_Display::display_training_options(){
 	net_data_window.setPosition(sf::Vector2((int)net_disp_window.getPosition().x + (int)net_disp_window.getSize().x + 10, (int)net_disp_window.getPosition().y));
 	platform.setIcon(net_data_window.getSystemHandle());
 
+
+	for(int j=net->net->input_layer->num_nodes; j < net->net->input_layer->num_nodes + net->net->last_layer->num_nodes; j++){
+		printf("%f\n", net->net->training_data[1][j]);
+	}
+
+
 	while(net_data_window.isOpen()){
-		training_stats.setString("* Num training sets loaded: " + to_string(net->net->num_training_sets) + "\n--------\n");
+		if(close_training_disp){
+			close_training_disp = false;
+			net_data_window.close();
+		}
+
+		training_stats.setString("\n* Num training sets loaded: " + to_string(net->net->num_training_sets) + "\n--------\n");
 		training_stats.setString(training_stats.getString() + "* Current training set position: " + to_string(net->net->cur_training_set) + "\n\n------------------\n\n");
-		training_stats.setString(training_stats.getString() + "* Current network outputs:\n[" + to_string(net->net->cur_training_set) + "\n--------\n");
-		training_stats.setString(training_stats.getString() + "* Current expected outputs:\n" + to_string(net->net->cur_training_set) + "\n--------\n");
+		training_stats.setString(training_stats.getString() + "* Current network outputs:\n[");
+
+		for(int i = 0; i < net->net->last_layer->num_nodes; i++){
+
+			if(i != net->net->last_layer->num_nodes - 1){
+
+				training_stats.setString(training_stats.getString() + to_string(net->net->last_layer->output[i]) + "\n");
+			}
+			else{
+				training_stats.setString(training_stats.getString() + to_string(net->net->last_layer->output[i]) + "]");
+			}
+		}
+
+
+		training_stats.setString(training_stats.getString() + "\n--------\n");
+		training_stats.setString(training_stats.getString() + "* Current expected outputs:\n[");
+		for(int i = net->net->input_layer->num_nodes; i < net->net->input_layer->num_nodes + net->net->last_layer->num_nodes; i++){
+
+			if(i != net->net->input_layer->num_nodes + net->net->last_layer->num_nodes - 1){
+
+				training_stats.setString(training_stats.getString() + to_string(net->net->training_data[net->net->cur_training_set][i]) + "\n");
+			}
+			else{
+				training_stats.setString(training_stats.getString() + to_string(net->net->training_data[net->net->cur_training_set][i]) + "]");
+			}
+		}
 
 
 
+	
 		while (net_data_window.pollEvent(net_data_event)){
 
 			// If user closes
@@ -423,11 +474,24 @@ void NN_Display::display_training_options(){
 				}
 			}
 
+			else if(net_data_event.type == sf::Event::MouseButtonPressed){
+				// Loop through out buttons and see which was clocked
+				if(backward.rect.getGlobalBounds().contains(net_data_window.mapPixelToCoords(sf::Mouse::getPosition(net_data_window)))){
+					net->net->cur_training_set--;
+				}
+				else if(forward.rect.getGlobalBounds().contains(net_data_window.mapPixelToCoords(sf::Mouse::getPosition(net_data_window)))){
+					net->net->cur_training_set++;
+				}
+			}
 
 		}
 		net_data_window.clear();
 		net_data_window.draw(title);
 		net_data_window.draw(training_stats);
+		net_data_window.draw(backward.rect);
+		net_data_window.draw(backward.text);
+		net_data_window.draw(forward.rect);
+		net_data_window.draw(forward.text);
 		net_data_window.display();
 	}
 }
@@ -478,6 +542,8 @@ void NN_Display::display_net(){
 	sf::RectangleShape reset_rect;
 	sf::RectangleShape delete_rect;
 	sf::RectangleShape display_weights_rect;
+
+
 
 	// Object for our text font and then load. Exit if not found
 	sf::Font title_font;

@@ -11,19 +11,19 @@
 class NN_Display{
 
 	public:
+
 		Net_Helper* net;
 		NN_Display(Net_Helper* net);
 		void display_net();
 		void display_side_menu();
 		void display_training_options();
-		//void display_layer_stats(Net_Helper* net, int active_layer);
 		void display_layer_stats();
 		void display_node_stats();
+
 		std::thread* t1;
 		std::thread* t2;
 		std::thread* t0;
 		std::thread* t3;
-
 
 		int max_font_size;
 		int disp_layer;
@@ -51,8 +51,7 @@ class NN_Display{
 		bool close_net_disp;
 		bool close_layer_disp;
 		bool close_node_disp;
-
-
+		bool close_training_disp;
 
 		util::Platform platform;
 		sf::RenderWindow net_disp_window;
