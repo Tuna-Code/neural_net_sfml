@@ -12,7 +12,7 @@ NN_Display::NN_Display(Net_Helper* net){
 
 	// Update our objects network pointer to the one provided
 	this->net = net;
-
+	// test
 	// Set initial resolution
 	win_x = 1440;
 	win_y = 900;
