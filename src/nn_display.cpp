@@ -402,7 +402,7 @@ void NN_Display::display_training_options(){
 	while(net_data_window.isOpen()){
 		training_stats.setString("* Num training sets loaded: " + to_string(net->net->num_training_sets) + "\n--------\n");
 		training_stats.setString(training_stats.getString() + "* Current training set position: " + to_string(net->net->cur_training_set) + "\n\n------------------\n\n");
-		training_stats.setString(training_stats.getString() + "* Current network outputs:\n[");
+		training_stats.setString(training_stats.getString() + "* Current network outputs:\n[" + to_string(net->net->cur_training_set) + "\n--------\n");
 		training_stats.setString(training_stats.getString() + "* Current expected outputs:\n" + to_string(net->net->cur_training_set) + "\n--------\n");
 
 

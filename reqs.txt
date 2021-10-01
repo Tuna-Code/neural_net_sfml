@@ -1,0 +1,7 @@
+SFML located in "C:\CPP_SFML_TOOLS\x64" such that bin path is 'C:\CPP_SFML_TOOLS\x64\SFML-2.5.1\bin' 
+
+(using SFML-2.5.1-windows-gcc-7.3.0-mingw-64-bit version)
+
+
+mingw64 located in "C:\CPP_SFML_TOOLS\x64\mingw64" such that bin path is "C:\CPP_SFML_TOOLS\x64\mingw64\bin"
+(using x86_64-7.3.0-release-posix-seh-rt_v5-rev0 version)
