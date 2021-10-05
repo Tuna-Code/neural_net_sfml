@@ -21,6 +21,16 @@ class Layer{
         double* orig_input; // Layer input array
         double* orig_output; // Layer output after computation
         double** orig_weights; // Weights of connections leaving layer
+        double** summed_grad_weights;
+
+        double* gradient_out;
+        double* gradient_in;
+
+        // weights[j][k]
+        // j = connections leaving Node k in layer j
+        // k = l-th weight leaving node k in layer j
+
+        double** gradient_weights;
 
         string actv_func; // Which activation function we want for this layer
         Layer* next_layer = NULL; // Pointer to next layer in linked list
@@ -29,7 +39,11 @@ class Layer{
         // Layer functions
         Layer(int num, int num_nodes, string actv_func, double* input, double* output, double** weights, int weight_rows, int weight_cols);
         void print_layer_info();
+
         double sigmoid(double input);
+        double relu(double input);
+        void softmax(double* input);
+
         double fast_sigmoid(double input);
         void comp_outputs();
         void compute_product();

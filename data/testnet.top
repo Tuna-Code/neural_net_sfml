@@ -1,3 +1,16 @@
+#Learning Rate (traditionally betweek 0.01 -> 0.1
+0.5
+
+# Network Loss Function:
+## Options:
+### Regression Problem - Mean Squared Error (MSE): 
+#### Predicting a real value quantity - One output node with linear activation unit
+### Binary Classification Problem - Cross Entropy/Logarithmic Loss (CE):
+#### Likelihood of example belong to one of two classes, one output node with sigmoid. One class is 1, other is 0
+### Multi-Class Classification Problem - Cross Entropy/Logarithmic Loss (CE):
+#### Predicting likelihood of example belonging to each class, One node for each class with Softmax activation function
+[SOS]
+
 ##--------------- How many Layers in network ---------------
 # Layer_Count:
 4
@@ -18,7 +31,7 @@
 
 ##----- Manual set node count
 # Nodes_Per_Layer (if Random_Nodes_Per_Layer is 0):
-[4,3,5,2]
+[4,3,5,1]
 
 
 ##--------------- Which activation function for layer ------
@@ -28,7 +41,7 @@
 
 ##--------------- Set initial weight matricies for layer ---
 ##----- Assign random initial weights
-#Random_Weights (0 - false, 1 - true):
+#Random_Weights (0 - false, 1 - true, 2 - all ones):
 1
 #Random_Range_Min:
 -0.999999
@@ -41,3 +54,4 @@
 
 [1,-2
 0.25,2]
+

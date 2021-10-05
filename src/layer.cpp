@@ -22,6 +22,10 @@ Layer::Layer(int num, int num_nodes, string actv_func, double* input, double* ou
     this->prev_layer = NULL;
     this->layer_product = NULL;
 
+    summed_grad_weights = NULL;
+    gradient_in = NULL;
+    gradient_out = NULL;
+    gradient_weights = NULL;
 
     this->orig_input = new double[num_nodes];
     this->orig_output = new double[num_nodes];
@@ -31,10 +35,12 @@ Layer::Layer(int num, int num_nodes, string actv_func, double* input, double* ou
     }
 
     orig_weights = new double*[weight_rows];
+    summed_grad_weights = new double*[weight_rows];
 
     for (int j = 0; j < weight_rows; j++)
     {
         orig_weights[j] = new double[weight_cols];
+        summed_grad_weights[j] = new double[weight_cols];
         memcpy(orig_weights[j], weights[j], sizeof(double)*weight_cols );
 
     }
@@ -59,8 +65,17 @@ void Layer::comp_outputs(){
         }
     }
 
+    else if(actv_func == "Relu"){
+        for(int i = 0; i < num_nodes; i++){
+            output[i] = relu(input[i]);
+        }
+    }
+    else if(actv_func == "Softmax"){
+        softmax(output);
+    }
+
     // If layer is raw (such as input layer)
-    if(actv_func == "Null"){
+    else if(actv_func == "Null"){
         for(int i = 0; i < num_nodes; i++){
             output[i] = input[i];
         }
@@ -126,10 +141,33 @@ void Layer::print_layer_info(){
     cout << endl << endl;
 }
 
+// Softmax layer activation
+void Layer::softmax(double* input){
+    double denom = 0;
+    for(int i = 0; i < num_nodes; i++){
+       denom += exp(output[i]);
+    }
+    for(int i = 0; i < num_nodes; i++){
+        output[i] = exp(output[i])/denom;
+    }
+
+}
 // Sigmoid activation function
 double Layer::sigmoid(double input){
     return (1 / (1 + exp((-1)*input)));
 }
+
+// ReLu activation function
+double Layer::relu(double input){
+    if(input > 0){
+        return input;
+    }
+    else{
+        return 0;
+    }
+}
+
+
 
 // Fast sigmoid activation function (unsure if valid)
 double Layer::fast_sigmoid(double input){

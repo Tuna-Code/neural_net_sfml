@@ -4,7 +4,5 @@
 ## Each line is new input
 ## Example for network with 3 input nodes and 2 output nodes (spaces and non-numericals are ignored):
 ## in_1,in_2,in_3,out_1,out_2
-3, 2, 1,2,0.2
-2,3,4,5,0.5
-9 ,8, 7, 6,0.45
-.9 ,8.7, 7.7, 6.2,0.45
+3, 1, 1, 0
+-1, 4, 0, 1

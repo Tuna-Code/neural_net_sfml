@@ -22,9 +22,11 @@ Net_Helper::Net_Helper(NNet* net)
 
 // Load a network from external file
 void Net_Helper::load_from_file(string file_path){
+
 	if(net->input_layer != NULL){
 		delete_network();
 	}
+
 	// Randomizer engine
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(seed);
@@ -36,7 +38,7 @@ void Net_Helper::load_from_file(string file_path){
 	int* nodes_per_layer = NULL;
 	string* layer_actv_func = NULL;
 
-	int input_tracker = 0;
+	int input_tracker = -2;
 	//int npl_tracker = 0;
 	int string_start = 1;
 	int string_end = 0;
@@ -62,6 +64,7 @@ void Net_Helper::load_from_file(string file_path){
 	int layer_node_range_max = 0;
 
 	bool random_weights= false;
+	bool ones_weights = false;
 	double rand_weights_min = 0;
 	double rand_weights_max = 0;
 
@@ -86,8 +89,29 @@ void Net_Helper::load_from_file(string file_path){
 			}
 
 			else{
+				// Grab learning rate
+				if(input_tracker == -2){
+					net->learning_rate = stod(cur_line);
+					//cout << net->learning_rate;
+					input_tracker++;
+				}
+				// Grab loss function
+				else if(input_tracker == -1){
+					int start = 0;
+					int end = 0;
+					for(int i = 0; i < cur_line.size(); i++){
+						if(cur_line[i] == '['){
+							start = i + 1;
+						}
+						else if(cur_line[i] == ']'){
+							end = i - 1;
+						}
+					}
+					net->error_func = cur_line.substr(start,end);
+					input_tracker++;
+				}
 				// If it's our 1st input val (layer count)
-				if(input_tracker == 0){
+				else if(input_tracker == 0){
 					layer_count = stoi(cur_line);
 					nodes_per_layer = new int[layer_count];
 					layer_actv_func = new string[layer_count];
@@ -198,9 +222,15 @@ void Net_Helper::load_from_file(string file_path){
 					// Grab bool value if random node nums are desired
 					if(cur_line == "0"){
 						random_weights = false;
+						ones_weights = false;
 					}
 					else if(cur_line == "1"){
 						random_weights = true;
+						ones_weights = false;
+					}
+					else if(cur_line == "2"){
+						ones_weights = true;
+						random_weights = false;
 					}
 
 					input_tracker++;
@@ -218,7 +248,7 @@ void Net_Helper::load_from_file(string file_path){
 
 
 					// If we chose random weights, generate and assign. Otherwise move onto next section
-					if(random_weights){
+					if(random_weights || ones_weights){
 
 
 
@@ -238,7 +268,13 @@ void Net_Helper::load_from_file(string file_path){
 							for(int i = 0; i < weight_rows; i++){
 								for(int j = 0; j < weight_cols; j++){
 									std::uniform_real_distribution<double> range(rand_weights_min,rand_weights_max);
-									weights[i][j] = range(generator);
+									if(ones_weights){
+										weights[i][j] = 1;
+									}
+									else{
+										weights[i][j] = range(generator);
+									}
+
 								}
 							}
 
@@ -384,15 +420,11 @@ void Net_Helper::load_from_file(string file_path){
 
 }
 
+
 // Load training data from external file
 void Net_Helper::load_training_from_file(string file_path){
 
-	if(net->training_data == NULL){
-		cout << "No Data Loaded!\nStarting fresh...\n";
-	}
-	else{
-		cout << "Training data already loaded... Starting again\n";
-	}
+
 
 	double temp = 0;
 	string cur_line = "";
@@ -406,6 +438,13 @@ void Net_Helper::load_training_from_file(string file_path){
 	net->num_training_sets = 0;
 	// Create out input file stream object
 	std::ifstream input_file(file_path);
+
+	 // Grab number of outputs for array allocation
+    int num_outputs = net->last_layer->num_nodes;
+
+
+
+
 
 	// While file is open
 	if(input_file.is_open()){
@@ -421,6 +460,78 @@ void Net_Helper::load_training_from_file(string file_path){
 			}
 		}
 	}
+
+
+	// If our 3d matrix of all progresive weights hasn't been allocated yet, make it
+	if(net->total_gradient_weights == NULL){
+		net->total_gradient_weights = new double***[net->num_training_sets];
+		for(int i = 0; i < net->num_training_sets; i++){
+			Layer* l = net->input_layer;
+
+			net->total_gradient_weights[i] = new double**[net->layer_count -1];
+
+
+			for(int j = 0; j < net->layer_count - 1; j++){
+				net->total_gradient_weights[i][j] = new double*[l->num_nodes];
+
+
+				for(int k = 0; k < l->num_nodes; k++){
+					net->total_gradient_weights[i][j][k] = new double[l->next_layer->num_nodes];
+
+
+					for(int x = 0; x < l->next_layer->num_nodes; x++){
+						net->total_gradient_weights[i][j][k][x] = 0;
+					}
+
+
+				}
+
+			l = l->next_layer;
+			}
+
+
+		}
+	}
+
+
+	// If error arrays are NULL (new) allocate space
+    if(net->error_raw == NULL && net->error_comp == NULL && net->output_all == NULL){
+
+
+		/*
+		net->error_comp = new double[num_outputs];
+		for(int i = 0; i < num_outputs; i++){
+			net->error_comp[i] = 0;
+		}*/
+
+		net->output_all = new double*[net->num_training_sets];
+		net->error_raw = new double*[net->num_training_sets];
+		net->error_comp = new double*[net->num_training_sets];
+
+
+
+
+
+		for(int i = 0; i < net->num_training_sets; i++){
+			net->error_raw[i] = new double[num_outputs];
+			net->output_all[i] = new double[num_outputs];
+			net->error_comp[i] = new double[num_outputs];
+			for(int j = 0; j < num_outputs; j++){
+				net->error_raw[i][j] = 0;
+				net->output_all[i][j] = 0;
+				net->error_comp[i][j] = 0;
+
+			}
+		}
+		/*if(net->error_func == "MSE"){
+			net->error_comp = new double[1];
+		}
+		else{
+			net->error_comp = new double[num_outputs];
+		}*/
+    }
+
+
 	// Close our file when finished
 	input_file.close();
 
@@ -481,6 +592,10 @@ void Net_Helper::load_training_from_file(string file_path){
 		// Finished reading data, close input file
 		input_file.close();
 	}
+	//net->cur_training_set = 0;
+	//net->load_inputs();
+	//net->forward_prop();
+
 	/*for(int i = 0; i < net->num_training_sets; i++){
 		for(int j = 0; j < num_data_entries; j++){
 			printf("%f ", net->training_data[i][j]);
@@ -544,12 +659,44 @@ void Net_Helper::reset_network(){
 // Delete and clear memory of all network values (start fresh)
 // Clear out NN layers from memory
 void Net_Helper::delete_network(){
+
 	Layer* cur = net->input_layer;
-	Layer* next = cur->next_layer;
+
+
+	for(int i = 0; i < net->layer_count; i++){
+
+		// Clear memory of 1-d pointer arrays
+		delete[] cur->input;
+		delete[] cur->output;
+		delete[] cur->orig_input;
+		delete[] cur->orig_output;
+		delete[] cur->gradient_in;
+		delete[] cur->gradient_out;
+
+		// If layer is not output layer (has weights), clear 2d weight arrays
+		if(cur->weights != NULL){
+			for(int j = 0; j < cur->num_nodes; j++){
+				delete[] cur->weights[j];
+				delete[] cur->orig_weights[j];
+				delete[] cur->summed_grad_weights[j];
+				delete[] cur->gradient_weights[j];
+			}
+			delete[] cur->weights;
+			delete[] cur->orig_weights;
+			delete[] cur->summed_grad_weights;
+			delete[] cur->gradient_weights;
+
+
+		}
+		cur = cur->next_layer;
+	}
+
+	/*Layer* next = cur->next_layer;
+
 	int i = 0;
 	//delete net->training_data;
 	while(cur != NULL){
-
+		cout << i;
 		//cur->next_layer = NULL;
 		//cur->prev_layer = NULL;
 
@@ -558,22 +705,70 @@ void Net_Helper::delete_network(){
 		delete cur->output;
 		delete cur->weights;
 
+		cout << "HERE1";
+		delete cur->layer_product;
+		cout << "HERE2";
+		delete cur->summed_grad_weights;
+		cout << "HERE3";
+		delete cur->gradient_in;
+		cout << "HERE4";
+		delete cur->gradient_out;
+		cout << "HERE5";
+		delete cur->gradient_weights;
+		cout << "HERE6";
+		cur->actv_func = "";
+
+		cout << "HERE7";
 
 		delete cur->orig_input;
+				cout << "HERE8";
+
 		delete cur->orig_output;
+				cout << "HERE9";
+
 		delete cur->orig_weights;
+		cout << "HERE10";
 
 
 		delete cur;
+				cout << "HERE11";
+
 		cur = next;
+				cout << "HERE12";
+
 		if(cur != NULL){
+					cout << "HERE13";
+
 			next = cur->next_layer;
+					cout << "HERE14";
+
 		}
+		i++;
 	}
+
+	cout << "HERE15";
 	net->cur_layer = NULL;
+	cout << "HERE16";
 	net->last_layer = NULL;
+	cout << "HERE17";
 	net->input_layer = NULL;
+	cout << "HERE18";
 	net->layer_count = 0;
+	cout << "HERE19";
+
+	net->cur_training_set = 0;
+	net->num_training_sets = 0;
+	delete net->training_data;
+	net->error_func = "";
+	net->learning_rate = 0;
+	delete net->total_gradient_weights;
+	delete net->error_raw;
+	delete net->output_all;
+	delete net->error_comp;
+
+	delete net;
+	net = new NNet();*/
+	cout << "\nFINISHED DELETE\n";
 }
 
 // Interactive network setup
